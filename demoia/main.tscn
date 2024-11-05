@@ -1,9 +1,9 @@
 [gd_scene load_steps=2 format=3 uid="uid://ipnfqlpotl4"]
 
-[ext_resource type="Texture2D" uid="uid://bsrgciv4r1fol" path="res://icon.svg" id="1_8gyui"]
+[ext_resource type="Script" path="res://main.gd" id="1_30w3o"]
 
 [node name="Main" type="Node"]
+script = ExtResource("1_30w3o")
 
-[node name="GDExample" type="GDExample" parent="."]
-position = Vector2(15.4999, 0.601603)
-texture = ExtResource("1_8gyui")
+[node name="TerrainGenerator" type="TerrainGenerator" parent="."]
+seed = 1250
