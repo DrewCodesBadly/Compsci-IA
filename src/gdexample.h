@@ -1,25 +1,25 @@
-#ifndef GDEXAMPLE_H
-#define GDEXAMPLE_H
+#ifndef TERRAINGEN_H
+#define TERRAINGEN_H
 
 #include <godot_cpp/classes/sprite2d.hpp>
 
-namespace godot {
+namespace godot
+{
 
-class GDExample : public Sprite2D {
-	GDCLASS(GDExample, Sprite2D)
+	class TerrainGenerator : public Node
+	{
+		GDCLASS(TerrainGenerator, Node)
 
-private:
-	double time_passed;
+	private:
+		double time_passed;
 
-protected:
-	static void _bind_methods();
+	protected:
+		static void _bind_methods();
 
-public:
-	GDExample();
-	~GDExample();
-
-	void _process(double delta) override;
-};
+	public:
+		TerrainGenerator();
+		~TerrainGenerator();
+	};
 
 }
 
