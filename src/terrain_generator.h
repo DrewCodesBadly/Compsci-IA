@@ -22,6 +22,8 @@ namespace godot
 
 		void set_seed(const int given_seed);
 		int get_seed() const;
+
+		void generate();
 	};
 
 }

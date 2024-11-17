@@ -1,4 +1,4 @@
-#include "terraingen.h"
+#include "terrain_generator.h"
 #include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
@@ -30,4 +30,9 @@ void TerrainGenerator::set_seed(const int given_seed)
 int TerrainGenerator::get_seed() const
 {
     return seed;
+}
+
+// TODO: ADD
+void TerrainGenerator::generate()
+{
 }
