@@ -4,10 +4,11 @@
 class Vec2
 {
 public:
+    // Note x and y are public for easy vector math
     double x;
     double y;
     double dot(Vec2 v);
-    void vecFloor();
+    Vec2 vecFloor();
     Vec2(double n);
     Vec2(double x, double y);
     ~Vec2();
