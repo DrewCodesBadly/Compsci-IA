@@ -13,13 +13,13 @@ void TerrainGenerator::_bind_methods()
 
 TerrainGenerator::TerrainGenerator(int given_seed)
 {
-    // variable initialization goes here
+    // Variable initialization goes here
     seed = given_seed;
 }
 
 TerrainGenerator::~TerrainGenerator()
 {
-    // any needed cleanup here
+    // Any needed cleanup here
 }
 
 void TerrainGenerator::set_seed(const int given_seed)
