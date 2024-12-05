@@ -1,7 +1,7 @@
 #include "terrain_rng.h"
 #include <random>
 
-TerrainRNG::TerrainRNG(int seed)
+TerrainRNG::TerrainRNG(unsigned int seed)
     : current{seed}, mt{std::mt19937{seed}}
 {
 }

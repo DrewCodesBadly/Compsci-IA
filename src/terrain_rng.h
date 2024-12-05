@@ -6,11 +6,11 @@
 class TerrainRNG
 {
 private:
-    int current;
+    unsigned int current;
     std::mt19937 mt;
 
 public:
-    TerrainRNG(int seed = 0);
+    TerrainRNG(unsigned int seed = 0);
     ~TerrainRNG();
     int next();
     void set(int seed);

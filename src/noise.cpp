@@ -57,7 +57,7 @@ double Noise::getValue(Vec2 v)
     return ((1.0 - fract.x) * bl_tl) + (fract.x * br_tr);
 }
 
-Vec2 randvec(double s)
+Vec2 Noise::randvec(double s)
 {
     // Random number generator based on input seed in range [0, 2PI]
     // Hopefully its random enough i just kinda threw it together
