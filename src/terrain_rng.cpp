@@ -19,4 +19,5 @@ int TerrainRNG::next()
 void TerrainRNG::set(int seed)
 {
     current = seed;
+    mt = std::mt19937{current};
 }
