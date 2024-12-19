@@ -12,33 +12,53 @@ Noise::Noise(int seed, double frequency)
 
 Noise::~Noise() {}
 
-// For convenience
-double Noise::getValue(double x, double y)
+double Noise::get_frequency() const
 {
-    return getValue(Vec2{x, y});
+    return frequency;
+}
+
+void Noise::set_frequency(const double f)
+{
+    frequency = f;
+}
+
+void Noise::set_seed(const int s)
+{
+    seed = s;
+}
+
+int Noise::get_seed() const
+{
+    return seed;
+}
+
+// For convenience
+double Noise::get_value(double x, double y)
+{
+    return get_value(Vec2{x, y});
 }
 
 // MODIFIES INPUT VECTOR!!!! Can be changed if this is an issue
 /* See https://thebookofshaders.com/11/, https://gpfault.net/posts/perlin-noise.txt.html,
    and https://en.wikipedia.org/wiki/Perlin_noise for more info on noise */
-double Noise::getValue(Vec2 v)
+double Noise::get_value(Vec2 v)
 {
     // Multiply input vector by frequency
     v.x *= frequency;
     v.y *= frequency;
 
+    // Get fractional and integer parts separately
+    Vec2 bl{0.0, 0.0};
+    Vec2 fract{modf(v.x, &bl.x), modf(v.y, &bl.y)};
+
     // Get the 4 corners surrounding this point
-    Vec2 bl{v.vecFloor()}; // take floor of v
     Vec2 tl{bl.x, bl.y + 1.0}, tr{bl.x + 1.0, bl.y + 1.0}, br{bl.x + 1.0, bl.y};
 
-    // Also get the fractional point between the corners
-    Vec2 fract{v.x - bl.x, v.y - bl.y};
-
     // Generate pseudo-random unit vectors corresponding to each corner
-    bl = randvec(bl.dot(rand_const) + seed);
-    tl = randvec(tl.dot(rand_const) + seed);
-    tr = randvec(tr.dot(rand_const) + seed);
-    br = randvec(br.dot(rand_const) + seed);
+    bl = randvec(seed + bl.x + bl.y - 1.0);
+    tl = randvec(seed + tl.x - tl.y - 2.0);
+    tr = randvec(-seed - tr.x + tr.y + 1.0);
+    br = randvec(-seed - br.x - br.y + 2.0);
 
     // Calculate offset vectors and dot products for each corner
     double bl_dot, tl_dot, tr_dot, br_dot;
@@ -61,7 +81,7 @@ Vec2 Noise::randvec(double s)
 {
     // Random number generator based on input seed in range [0, 2PI]
     // Hopefully its random enough i just kinda threw it together
-    double angle = fmod(sin(s / 15.234) * 234.63465, 2 * PI);
+    double angle = sin(s / 15.234) * 234.63465;
     // Create a vector from the random angle
     return Vec2{cos(angle), sin(angle)};
 }
