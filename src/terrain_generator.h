@@ -60,6 +60,7 @@ namespace godot
 		void set_tile_map(const NodePath &new_map);
 		NodePath get_tile_map() const;
 		double test_noise(Vector2i v);
+		void object_scatter(double r);
 
 		void generate();
 	};

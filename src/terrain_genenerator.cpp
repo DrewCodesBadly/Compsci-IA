@@ -197,6 +197,17 @@ void TerrainGenerator::generate()
     // Scatter objects
 }
 
+// Add variable object sizes in the future?
+/* Uses the poisson disk sampling algorithm, more information can be found at:
+    - https://sighack.com/post/poisson-disk-sampling-bridsons-algorithm
+*/
+void TerrainGenerator::object_scatter(double r)
+{
+    const double cell_size{r / sqrt(2)};
+    const int cells_x{ceil(size.x / cell_size) + 1};
+    const int cells_y{ceil(size.y / cell_size) + 1};
+}
+
 double TerrainGenerator::test_noise(Vector2i v)
 {
     return biome_noise.get_value(v.x, v.y);
