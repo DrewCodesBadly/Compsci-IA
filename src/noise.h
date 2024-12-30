@@ -6,9 +6,7 @@ class Noise
 private:
     double frequency; // size of square areas in noise
     int seed;         // used in hash
-    Vec2 hash(Vec2 v);
-    // double mix_corners(Vec2 a, Vec2 b, Vec2 c, Vec2 d);
-    Vec2 randvec(double s);
+    Vec2 randvec(Vec2 v);
 
 public:
     ~Noise();

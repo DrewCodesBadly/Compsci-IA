@@ -64,7 +64,6 @@ namespace godot
 
 		void generate();
 	};
-
 }
 
 #endif

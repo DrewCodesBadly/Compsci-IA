@@ -169,6 +169,16 @@ void TerrainGenerator::set_tile_map(const NodePath &new_map)
     tile_map = new_map;
 }
 
+void TerrainGenerator::set_chunk_size(const Vector2i s)
+{
+    size = s;
+}
+
+Vector2i TerrainGenerator::get_chunk_size() const
+{
+    return size;
+}
+
 // TODO: ADD
 void TerrainGenerator::generate()
 {
@@ -182,17 +192,17 @@ void TerrainGenerator::generate()
     map->clear();
 
     // Noise output tester
-    // for (int x{0}; x < size.x; ++x)
-    // {
-    //     for (int y{0}; y < size.y; ++y)
-    //     {
-    //         // personal note: . derefs from a class, -> derefs from a pointer, data types with * are a pointer
-    //         map->set_cell(
-    //             Vector2i{x, y},
-    //             tile_source_id,
-    //             Vector2i{(int)((biome_noise.get_value(Vec2{(double)x, (double)y}) + 1.0) * 2.5), 0});
-    //     }
-    // }
+    for (int x{0}; x < size.x; ++x)
+    {
+        for (int y{0}; y < size.y; ++y)
+        {
+            // personal note: . derefs from a class, -> derefs from a pointer, data types with * are a pointer
+            map->set_cell(
+                Vector2i{x, y},
+                tile_source_id,
+                Vector2i{(int)((biome_noise.get_value(Vec2{(double)x, (double)y}) + 1.0) * 2.5), 0});
+        }
+    }
 
     // Scatter objects
 }
@@ -204,8 +214,8 @@ void TerrainGenerator::generate()
 void TerrainGenerator::object_scatter(double r)
 {
     const double cell_size{r / sqrt(2)};
-    const int cells_x{ceil(size.x / cell_size) + 1};
-    const int cells_y{ceil(size.y / cell_size) + 1};
+    const int cells_x{(int)ceil(size.x / cell_size) + 1};
+    const int cells_y{(int)ceil(size.y / cell_size) + 1};
 }
 
 double TerrainGenerator::test_noise(Vector2i v)

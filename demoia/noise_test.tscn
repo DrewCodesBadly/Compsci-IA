@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3 uid="uid://c1r0351qys4tt"]
+
+[ext_resource type="Shader" path="res://noise_test.gdshader" id="1_3m20n"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lt8ft"]
+shader = ExtResource("1_3m20n")
+shader_parameter/frequency = 11.815
+shader_parameter/seed = 38.6
+
+[node name="NoiseTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_lt8ft")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
