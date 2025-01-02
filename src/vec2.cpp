@@ -19,6 +19,11 @@ double Vec2::dot(Vec2 v)
     return (x * v.x) + (y * v.y);
 }
 
+double Vec2::dist(Vec2 v)
+{
+    return std::sqrt(std::pow(v.x, 2.0) + std::pow(v.y, 2.0));
+}
+
 Vec2 Vec2::vecFloor()
 {
     x = floor(x);
