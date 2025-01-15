@@ -212,7 +212,18 @@ void TerrainGenerator::generate()
     //     }
     // }
 
-    // Scatter objects
+    // Object scatter passes
+    // Pass 1: scatter small objects
+
+    // Pass 2: scatter large objects
+
+    // Remove small objects to change object density chunk to chunk
+
+    // Designate tunnel chunks
+
+    // Generate tunnel chunks
+
+    // Generate objects in non-tunnel chunks
 }
 
 // used for object_scatter

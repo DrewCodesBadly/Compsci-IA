@@ -4,6 +4,15 @@
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include "noise.h"
+#include "terrain_rng.h"
+
+enum Biome
+{
+	INDUSTRIAL,
+	ALIEN,
+	HYBRID,
+	ORGANIC
+};
 
 namespace godot
 {
@@ -60,7 +69,7 @@ namespace godot
 		void set_tile_map(const NodePath &new_map);
 		NodePath get_tile_map() const;
 		double test_noise(Vector2i v);
-		void object_scatter(double r, TerrainRNG main_rng);
+		void object_scatter(double r, TerrainRNG main_rng, int k);
 
 		void generate();
 	};
