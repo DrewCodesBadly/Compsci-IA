@@ -5,6 +5,9 @@
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include "noise.h"
 #include "terrain_rng.h"
+#include <vector>
+
+using std::vector;
 
 enum Biome
 {
@@ -22,35 +25,51 @@ namespace godot
 		GDCLASS(TerrainGenerator, Node)
 
 	private:
-		int seed;
+		int seed{0};
 		NodePath tile_map;
 		Vector2i size;
 		Vector2i chunk_size;
 		Noise biome_noise;
+		Noise density_noise;
+		int scatter_tries{5};
+		double small_object_radius{3.0};
+		double large_object_radius{10.0};
+
+		vector<vector<Chunk>> chunks;
 
 		// tiles
-		int tile_source_id;
-		Vector2i floor_tile;
-		Vector2i wall_tile_organic;
-		Vector2i wall_tile_hybrid;
-		Vector2i wall_tile_industrial;
-		Vector2i wall_tile_alien;
+		int tile_source_id{-1};
+		Vector2i floor_tile{Vector2i(0, 0)};
+		Vector2i wall_tile_organic{Vector2i(0, 0)};
+		Vector2i wall_tile_hybrid{Vector2i(0, 0)};
+		Vector2i wall_tile_industrial{Vector2i(0, 0)};
+		Vector2i wall_tile_alien{Vector2i(0, 0)};
+
+		void insert_object(vector<vector<Vec2>> grid, Vec2 p, double cellsize, double obj_size);
 
 	protected:
 		static void _bind_methods();
 
 	public:
-		TerrainGenerator(int given_seed = 0, double biome_frequency = 1.0, int source_id = -1);
+		TerrainGenerator();
 		~TerrainGenerator();
 
 		void set_seed(const int given_seed);
 		int get_seed() const;
 		void set_biome_frequency(const double f);
 		double get_biome_frequency() const;
+		void set_density_frequency(const double f);
+		double get_density_frequency() const;
 		void set_size(const Vector2i s);
 		Vector2i get_size() const;
 		void set_chunk_size(const Vector2i s);
 		Vector2i get_chunk_size() const;
+		void set_scatter_tries(const int t);
+		int get_scatter_tries() const;
+		void set_small_object_radius(const double r);
+		double get_small_object_radius() const;
+		void set_large_object_radius(const double r);
+		double get_large_object_radius() const;
 
 		// tiles
 		void set_tile_source_id(const int id);

@@ -12,6 +12,9 @@ private:
     Biome biome;
 
 public:
+    Chunk();
+    ~Chunk();
+    void add_object(TerrainObject o);
 };
 
 #endif
