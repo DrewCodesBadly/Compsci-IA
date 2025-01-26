@@ -15,6 +15,7 @@ public:
     Chunk();
     ~Chunk();
     void add_object(TerrainObject o);
+    void generate(godot::TileMapLayer *map, int x, int y, godot::TerrainGenerator *generator);
 };
 
 #endif

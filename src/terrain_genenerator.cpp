@@ -140,13 +140,19 @@ void TerrainGenerator::generate()
     object_scatter(large_object_radius, main_rng, scatter_tries);
 
     // Remove objects to change object density chunk to chunk
+    // TODO: Add
 
     // Designate tunnel chunks
+    // TODO: add
 
     // Generate chunks
-    // Fill chunk w/blank tiles
-    // If chunk is a tunnel chunk, it generates a tunnel
-    // Else, generate all the objects in the chunk
+    for (int x{0}; x < chunks.size(); x++)
+    {
+        for (int y{0}; y < chunks[0].size(); y++)
+        {
+            chunks[x][y].generate(map, x, y, this);
+        }
+    }
 }
 
 // used for object_scatter

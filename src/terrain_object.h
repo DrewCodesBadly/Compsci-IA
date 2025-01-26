@@ -1,14 +1,16 @@
 #ifndef TERRAIN_OBJECT_H
 #define TERRAIN_OBJECT_H
-#include "vec2.h"
+
+#include <godot_cpp/classes/node.hpp>
+
 class TerrainObject
 {
 private:
-    Vec2 pos;
+    godot::Vector2i pos;
     double size;
 
 public:
-    TerrainObject(Vec2 pos, double size);
+    TerrainObject(godot::Vector2i pos, double size);
     ~TerrainObject();
 };
 #endif
