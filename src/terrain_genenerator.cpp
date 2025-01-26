@@ -48,10 +48,10 @@ void TerrainGenerator::_bind_methods()
     ADD_PROPERTY(PropertyInfo(Variant::INT, "scatter_tries"), "set_scatter_tries", "get_scatter_tries");
     ClassDB::bind_method(D_METHOD("get_small_object_radius"), &TerrainGenerator::get_small_object_radius);
     ClassDB::bind_method(D_METHOD("set_small_object_radius", "r"), &TerrainGenerator::set_small_object_radius);
-    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "small_object_radius"), "get_small_object_radius", "set_small_object_radius");
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "small_object_radius"), "set_small_object_radius", "get_small_object_radius");
     ClassDB::bind_method(D_METHOD("get_large_object_radius"), &TerrainGenerator::get_large_object_radius);
     ClassDB::bind_method(D_METHOD("set_large_object_radius", "r"), &TerrainGenerator::set_large_object_radius);
-    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "large_object_radius"), "get_large_object_radius", "set_large_object_radius");
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "large_object_radius"), "set_large_object_radius", "get_large_object_radius");
 
     // export properties for tiles
     // source id
@@ -59,20 +59,20 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_tile_source_id", "id"), &TerrainGenerator::set_tile_source_id);
     ADD_PROPERTY(PropertyInfo(Variant::INT, "tile_source_id"), "set_tile_source_id", "get_tile_source_id");
     // floor, wall, etc
-    ClassDB::bind_method(D_METHOD("get_floor_tile"), &TerrainGenerator::get_tile_source_id);
-    ClassDB::bind_method(D_METHOD("set_floor_tile", "t"), &TerrainGenerator::set_tile_source_id);
+    ClassDB::bind_method(D_METHOD("get_floor_tile"), &TerrainGenerator::get_floor_tile);
+    ClassDB::bind_method(D_METHOD("set_floor_tile", "t"), &TerrainGenerator::set_floor_tile);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile"), "set_floor_tile", "get_floor_tile");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_organic"), &TerrainGenerator::get_tile_source_id);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_organic", "t"), &TerrainGenerator::set_tile_source_id);
+    ClassDB::bind_method(D_METHOD("get_wall_tile_organic"), &TerrainGenerator::get_wall_tile_organic);
+    ClassDB::bind_method(D_METHOD("set_wall_tile_organic", "t"), &TerrainGenerator::set_wall_tile_organic);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_organic"), "set_wall_tile_organic", "get_wall_tile_organic");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_hybrid"), &TerrainGenerator::get_tile_source_id);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_hybrid", "t"), &TerrainGenerator::set_tile_source_id);
+    ClassDB::bind_method(D_METHOD("get_wall_tile_hybrid"), &TerrainGenerator::get_wall_tile_hybrid);
+    ClassDB::bind_method(D_METHOD("set_wall_tile_hybrid", "t"), &TerrainGenerator::set_wall_tile_hybrid);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_hybrid"), "set_wall_tile_hybrid", "get_wall_tile_hybrid");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_industrial"), &TerrainGenerator::get_tile_source_id);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_industrial", "t"), &TerrainGenerator::set_tile_source_id);
+    ClassDB::bind_method(D_METHOD("get_wall_tile_industrial"), &TerrainGenerator::get_wall_tile_industrial);
+    ClassDB::bind_method(D_METHOD("set_wall_tile_industrial", "t"), &TerrainGenerator::set_wall_tile_industrial);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_industrial"), "set_wall_tile_industrial", "get_wall_tile_industrial");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_alien"), &TerrainGenerator::get_tile_source_id);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_alien", "t"), &TerrainGenerator::set_tile_source_id);
+    ClassDB::bind_method(D_METHOD("get_wall_tile_alien"), &TerrainGenerator::get_wall_tile_alien);
+    ClassDB::bind_method(D_METHOD("set_wall_tile_alien", "t"), &TerrainGenerator::set_wall_tile_alien);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_alien"), "set_wall_tile_alien", "get_wall_tile_alien");
 
     ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
@@ -95,18 +95,18 @@ void TerrainGenerator::generate()
 {
 
     // Create main rng object
-    TerrainRNG main_rng{seed};
+    TerrainRNG main_rng{(unsigned int)seed};
 
     // Create and initialize 2d array of empty chunks
-    Vec2 map_size_chunks = Vec2(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y));
-    chunks.resize((int)map_size_chunks.x);
-    for (vector<Chunk> v : chunks)
+    Vector2i map_size_chunks{Vector2i(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y))};
+    for (int x{0}; x < map_size_chunks.x; x++)
     {
-        v.resize((int)map_size_chunks.y);
-        for (Chunk c : v)
+        vector<Chunk> v;
+        for (int y{0}; y < map_size_chunks.y; y++)
         {
-            c = Chunk();
+            v.push_back(Chunk());
         }
+        chunks.push_back(v);
     }
 
     // Get a proprer reference to the tile map from the stored node path
@@ -133,11 +133,11 @@ void TerrainGenerator::generate()
 
     // Object scatter passes
     // Pass 1: scatter small objects
-    object_scatter(small_object_radius, main_rng, scatter_tries);
+    // object_scatter(small_object_radius, main_rng, scatter_tries);
 
-    // Pass 2: scatter large objects
-    // Should naturally draw over small objects, so behavior will look about normal
-    object_scatter(large_object_radius, main_rng, scatter_tries);
+    // // Pass 2: scatter large objects
+    // // Should naturally draw over small objects, so behavior will look about normal
+    // object_scatter(large_object_radius, main_rng, scatter_tries);
 
     // Remove objects to change object density chunk to chunk
     // TODO: Add
@@ -164,7 +164,7 @@ void TerrainGenerator::insert_object(vector<vector<Vec2>> grid, Vec2 p, double c
 
     // Add object to appropriate chunk
     // Integer division takes the floor by default
-    chunks[pos_x / chunk_size.x][pos_y / chunk_size.y].add_object(TerrainObject(Vec2(pos_x, pos_y), obj_size));
+    chunks[pos_x / chunk_size.x][pos_y / chunk_size.y].add_object(TerrainObject(Vector2i(pos_x, pos_y), obj_size));
 }
 
 // Add variable object sizes in the future?
@@ -194,7 +194,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
     // Initial point
     vector<Vec2> points;
     vector<Vec2> active;
-    Vec2 p0{main_rng.next() % size.x, main_rng.next() % size.y};
+    Vec2 p0{(double)(main_rng.next() % size.x), (double)(main_rng.next() % size.y)};
     insert_object(grid, p0, cell_size, r);
     points.push_back(p0);
     active.push_back(p0);
@@ -203,7 +203,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
     while (active.size() > 0)
     {
         // Pick a random active point
-        int idx{main_rng.next() % active.size()};
+        unsigned int idx{main_rng.next() % active.size()};
         Vec2 point = active[idx];
 
         // Try up to k times to find a new point
@@ -224,7 +224,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
 
             // Check 8 neighbor cells
             bool valid{true};
-            int x{(int)new_point.x / cell_size}, y{(int)new_point.y / cell_size};
+            int x{(int)(new_point.x / cell_size)}, y{(int)(new_point.y / cell_size)};
             int x_min{std::max(x - 1, 0)}, x_max{std::min(x + 1, cells_x - 1)};
             int y_min{std::max(y - 1, 0)}, y_max{std::min(y + 1, cells_y - 1)};
             for (int x{x_min}; x < x_max; ++x)

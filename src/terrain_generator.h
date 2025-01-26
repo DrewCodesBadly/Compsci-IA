@@ -5,17 +5,13 @@
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include "noise.h"
 #include "terrain_rng.h"
+// #include "chunk.h"
 #include <vector>
 
 using std::vector;
 
-enum Biome
-{
-	INDUSTRIAL,
-	ALIEN,
-	HYBRID,
-	ORGANIC
-};
+// Forward declaration to avoid circular dependency in chunk.h
+class Chunk;
 
 namespace godot
 {
@@ -39,11 +35,11 @@ namespace godot
 
 		// tiles
 		int tile_source_id{-1};
-		Vector2i floor_tile{Vector2i(0, 0)};
-		Vector2i wall_tile_organic{Vector2i(0, 0)};
-		Vector2i wall_tile_hybrid{Vector2i(0, 0)};
-		Vector2i wall_tile_industrial{Vector2i(0, 0)};
-		Vector2i wall_tile_alien{Vector2i(0, 0)};
+		Vector2i floor_tile;
+		Vector2i wall_tile_organic;
+		Vector2i wall_tile_hybrid;
+		Vector2i wall_tile_industrial;
+		Vector2i wall_tile_alien;
 
 		void insert_object(vector<vector<Vec2>> grid, Vec2 p, double cellsize, double obj_size);
 

@@ -12,5 +12,6 @@ private:
 public:
     TerrainObject(godot::Vector2i pos, double size);
     ~TerrainObject();
+    godot::Vector2i get_pos() const;
 };
 #endif
