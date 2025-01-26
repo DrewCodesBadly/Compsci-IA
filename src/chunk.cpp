@@ -28,7 +28,7 @@ void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generato
     {
         for (int local_y{0}; local_y < chunk_size.y; local_y++)
         {
-            map->set_cell(Vector2i(local_x, local_y), source_id, floor_tile_coords);
+            map->set_cell(top_right_cell + Vector2i(local_x, local_y), source_id, floor_tile_coords);
         }
     }
 

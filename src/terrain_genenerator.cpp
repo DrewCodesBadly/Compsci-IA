@@ -28,7 +28,7 @@ void TerrainGenerator::_bind_methods()
 
     // chunk size property
     ClassDB::bind_method(D_METHOD("get_chunk_size"), &TerrainGenerator::get_chunk_size);
-    ClassDB::bind_method(D_METHOD("set_chunk_size", "s"), &TerrainGenerator::get_chunk_size);
+    ClassDB::bind_method(D_METHOD("set_chunk_size", "s"), &TerrainGenerator::set_chunk_size);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "chunk_size"), "set_chunk_size", "get_chunk_size");
 
     // Noise frequency properties
@@ -399,10 +399,10 @@ void TerrainGenerator::set_tile_map(const NodePath &new_map)
 
 void TerrainGenerator::set_chunk_size(const Vector2i s)
 {
-    size = s;
+    chunk_size = s;
 }
 
 Vector2i TerrainGenerator::get_chunk_size() const
 {
-    return size;
+    return chunk_size;
 }
