@@ -21,7 +21,9 @@ double Vec2::dot(Vec2 v)
 
 double Vec2::dist(Vec2 v)
 {
-    return std::sqrt(std::pow(v.x, 2.0) + std::pow(v.y, 2.0));
+    // Oh my god there's no way I actually wrote this, had me bamboozled for hours
+    // return std::sqrt(std::pow(v.x, 2.0) + std::pow(v.y, 2.0));
+    return std::sqrt(std::pow(v.x - x, 2.0) + std::pow(v.y - y, 2.0));
 }
 
 Vec2 Vec2::vecFloor()

@@ -12,7 +12,7 @@ private:
 public:
     TerrainRNG(unsigned int seed = 0);
     ~TerrainRNG();
-    int next();
+    unsigned int next();
     void set(int seed);
 };
 

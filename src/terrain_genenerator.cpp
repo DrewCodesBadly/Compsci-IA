@@ -3,6 +3,7 @@
 #include "chunk.h"
 #include <godot_cpp/core/class_db.hpp>
 #include <vector>
+#include <cmath>
 
 #define PI 3.14159265 // close enough
 
@@ -98,6 +99,7 @@ void TerrainGenerator::generate()
     TerrainRNG main_rng{(unsigned int)seed};
 
     // Create and initialize 2d array of empty chunks
+    chunks.clear();
     Vector2i map_size_chunks{Vector2i(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y))};
     for (int x{0}; x < map_size_chunks.x; x++)
     {
@@ -133,7 +135,7 @@ void TerrainGenerator::generate()
 
     // Object scatter passes
     // Pass 1: scatter small objects
-    // object_scatter(small_object_radius, main_rng, scatter_tries);
+    object_scatter(small_object_radius, main_rng, scatter_tries);
 
     // // Pass 2: scatter large objects
     // // Should naturally draw over small objects, so behavior will look about normal
@@ -156,15 +158,16 @@ void TerrainGenerator::generate()
 }
 
 // used for object_scatter
-void TerrainGenerator::insert_object(vector<vector<Vec2>> grid, Vec2 p, double cellsize, double obj_size)
+void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size)
 {
-    int pos_x = (int)(p.x / cellsize);
-    int pos_y = (int)(p.y / cellsize);
+    const int pos_x{(int)(p.x / cellsize)};
+    const int pos_y{(int)(p.y / cellsize)};
     grid[pos_x][pos_y] = p;
 
     // Add object to appropriate chunk
     // Integer division takes the floor by default
-    chunks[pos_x / chunk_size.x][pos_y / chunk_size.y].add_object(TerrainObject(Vector2i(pos_x, pos_y), obj_size));
+    // Note that when object positions go from doubles to truncated ints some precision is lost, but it should be good enough
+    chunks[p.x / chunk_size.x][p.y / chunk_size.y].add_object(TerrainObject(Vector2i(p.x, p.y), obj_size));
 }
 
 // Add variable object sizes in the future?
@@ -175,8 +178,8 @@ void TerrainGenerator::insert_object(vector<vector<Vec2>> grid, Vec2 p, double c
 void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
 {
     const double cell_size{r / sqrt(2)};
-    const int cells_x{(int)ceil(size.x / cell_size) + 1};
-    const int cells_y{(int)ceil(size.y / cell_size) + 1};
+    const int cells_x{(int)ceil(size.x / cell_size)};
+    const int cells_y{(int)ceil(size.y / cell_size)};
 
     // might be unneeded, we'll see how output works best
     // initialize to -1, 0 vectors
@@ -184,26 +187,24 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
     for (int x{0}; x < cells_x; ++x)
     {
         vector<Vec2> v;
-        grid.push_back(v);
         for (int y{0}; y < cells_y; ++y)
         {
             v.push_back(Vec2{-1.0, 0.0});
         }
+        grid.push_back(v);
     }
 
     // Initial point
-    vector<Vec2> points;
     vector<Vec2> active;
     Vec2 p0{(double)(main_rng.next() % size.x), (double)(main_rng.next() % size.y)};
     insert_object(grid, p0, cell_size, r);
-    points.push_back(p0);
     active.push_back(p0);
 
     bool success;
     while (active.size() > 0)
     {
         // Pick a random active point
-        unsigned int idx{main_rng.next() % active.size()};
+        unsigned long long idx{main_rng.next() % active.size()};
         Vec2 point = active[idx];
 
         // Try up to k times to find a new point
@@ -212,14 +213,14 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
         {
             // Pick point random angle away between r and 2r distance
             // Uses a random angle + distance and basic trig
-            double angle{(double)main_rng.next() / INT_MAX * 2 * PI};
-            double dist{main_rng.next() / INT_MAX * r + r};
+            double angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
+            double dist{(double)main_rng.next() / UINT_MAX * r + r};
             Vec2 new_point{point.x + (dist * cos(angle)), point.y + (dist * sin(angle))};
 
             // Check neighboring cells to determine if this point is valid
             // Code will continue as soon as it determines the point is invalid, otherwise set success to true
             // Check if point is inbounds
-            if (new_point.x < 0 || new_point.y < 0 || new_point.x > size.x || new_point.y > size.y)
+            if (new_point.x < 0 || new_point.y < 0 || new_point.x >= size.x || new_point.y >= size.y)
                 continue;
 
             // Check 8 neighbor cells
@@ -231,7 +232,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
             {
                 for (int y{y_min}; y < y_max; ++y)
                 {
-                    if (grid[x][y].x != -1.0 && new_point.dist(grid[x][y]) > r)
+                    if (grid[x][y].x != -1.0 && new_point.dist(grid[x][y]) < r)
                         valid = false;
                 }
             }
@@ -239,7 +240,6 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
                 continue;
 
             // Nothing went wrong so we add the point and break out of the for loop
-            points.push_back(new_point);
             active.push_back(new_point);
             insert_object(grid, new_point, cell_size, r);
             success = true;

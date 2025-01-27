@@ -10,7 +10,7 @@ TerrainRNG::~TerrainRNG()
 {
 }
 
-int TerrainRNG::next()
+unsigned int TerrainRNG::next()
 {
     current = mt();
     return current;

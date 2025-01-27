@@ -41,7 +41,7 @@ namespace godot
 		Vector2i wall_tile_industrial;
 		Vector2i wall_tile_alien;
 
-		void insert_object(vector<vector<Vec2>> grid, Vec2 p, double cellsize, double obj_size);
+		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size);
 
 	protected:
 		static void _bind_methods();
