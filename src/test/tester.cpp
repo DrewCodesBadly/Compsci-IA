@@ -21,8 +21,8 @@ void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double o
 void object_scatter(double r, TerrainRNG main_rng, int k)
 {
     const double cell_size{r / sqrt(2)};
-    const int cells_x{(int)ceil(SIZE_X / cell_size)};
-    const int cells_y{(int)ceil(SIZE_Y / cell_size)};
+    const int cells_x{(int)ceil(SIZE_X / cell_size) + 1};
+    const int cells_y{(int)ceil(SIZE_Y / cell_size) + 1};
 
     // might be unneeded, we'll see how output works best
     // initialize to -1, 0 vectors
@@ -73,9 +73,9 @@ void object_scatter(double r, TerrainRNG main_rng, int k)
             int x{(int)(new_point.x / cell_size)}, y{(int)(new_point.y / cell_size)};
             int x_min{std::max(x - 1, 0)}, x_max{std::min(x + 1, cells_x - 1)};
             int y_min{std::max(y - 1, 0)}, y_max{std::min(y + 1, cells_y - 1)};
-            for (int x{x_min}; x < x_max; ++x)
+            for (int x{x_min}; x <= x_max; ++x)
             {
-                for (int y{y_min}; y < y_max; ++y)
+                for (int y{y_min}; y <= y_max; ++y)
                 {
                     if (grid[x][y].x != -1.0 && new_point.dist(grid[x][y]) < r)
                         valid = false;
@@ -113,7 +113,7 @@ void object_scatter(double r, TerrainRNG main_rng, int k)
 
 int main()
 {
-    object_scatter(5.0, TerrainRNG(3U), 30);
+    object_scatter(3.0, TerrainRNG((int)0), 30);
     cout << "done!";
     return 0;
 }

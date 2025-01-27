@@ -15,7 +15,7 @@ void TerrainGenerator::_bind_methods()
     // seed property
     ClassDB::bind_method(D_METHOD("get_seed"), &TerrainGenerator::get_seed);
     ClassDB::bind_method(D_METHOD("set_seed", "given_seed"), &TerrainGenerator::set_seed);
-    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "seed"), "set_seed", "get_seed");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "seed"), "set_seed", "get_seed");
 
     // Reference to tilemap this will generate to
     ClassDB::bind_method(D_METHOD("get_tile_map"), &TerrainGenerator::get_tile_map);
@@ -139,7 +139,7 @@ void TerrainGenerator::generate()
 
     // // Pass 2: scatter large objects
     // // Should naturally draw over small objects, so behavior will look about normal
-    // object_scatter(large_object_radius, main_rng, scatter_tries);
+    object_scatter(large_object_radius, main_rng, scatter_tries);
 
     // Remove objects to change object density chunk to chunk
     // TODO: Add
@@ -157,7 +157,7 @@ void TerrainGenerator::generate()
     }
 }
 
-// used for object_scatter
+// used in object_scatter
 void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size)
 {
     const int pos_x{(int)(p.x / cellsize)};
@@ -175,11 +175,12 @@ void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double 
     - https://sighack.com/post/poisson-disk-sampling-bridsons-algorithm
 */
 // k is number of attempts before the algorithm gives up
+// Note that the radius used will be double the object size
 void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
 {
     const double cell_size{r / sqrt(2)};
-    const int cells_x{(int)ceil(size.x / cell_size)};
-    const int cells_y{(int)ceil(size.y / cell_size)};
+    const int cells_x{(int)ceil(size.x / cell_size) + 1};
+    const int cells_y{(int)ceil(size.y / cell_size) + 1};
 
     // might be unneeded, we'll see how output works best
     // initialize to -1, 0 vectors
@@ -197,7 +198,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
     // Initial point
     vector<Vec2> active;
     Vec2 p0{(double)(main_rng.next() % size.x), (double)(main_rng.next() % size.y)};
-    insert_object(grid, p0, cell_size, r);
+    insert_object(grid, p0, cell_size, r / 2.0);
     active.push_back(p0);
 
     bool success;
@@ -228,9 +229,9 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
             int x{(int)(new_point.x / cell_size)}, y{(int)(new_point.y / cell_size)};
             int x_min{std::max(x - 1, 0)}, x_max{std::min(x + 1, cells_x - 1)};
             int y_min{std::max(y - 1, 0)}, y_max{std::min(y + 1, cells_y - 1)};
-            for (int x{x_min}; x < x_max; ++x)
+            for (int x{x_min}; x <= x_max; ++x)
             {
-                for (int y{y_min}; y < y_max; ++y)
+                for (int y{y_min}; y <= y_max; ++y)
                 {
                     if (grid[x][y].x != -1.0 && new_point.dist(grid[x][y]) < r)
                         valid = false;
@@ -241,7 +242,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
 
             // Nothing went wrong so we add the point and break out of the for loop
             active.push_back(new_point);
-            insert_object(grid, new_point, cell_size, r);
+            insert_object(grid, new_point, cell_size, r / 2.0);
             success = true;
             break;
         }
