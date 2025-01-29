@@ -208,7 +208,7 @@ void TerrainGenerator::generate()
             // Normalized and trimmed just like for biome noise
             double val{normalize_and_trim(density_noise.get_value(x, y), 1.25)};
             // Then to integers in range [0, max_removed_objects), and that many objects are removed from the chunk.
-            chunks[x][y].remove_random_objects((unsigned int)val * max_removed_objects, main_rng);
+            chunks[x][y].remove_random_objects((int)(val * max_removed_objects), main_rng);
         }
     }
 
