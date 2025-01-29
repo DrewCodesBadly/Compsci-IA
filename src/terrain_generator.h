@@ -5,7 +5,7 @@
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include "noise.h"
 #include "terrain_rng.h"
-// #include "chunk.h"
+#include "biome.h"
 #include <vector>
 
 using std::vector;
@@ -35,11 +35,20 @@ namespace godot
 
 		// tiles
 		int tile_source_id{-1};
-		Vector2i floor_tile;
+		Vector2i floor_tile_organic;
+		Vector2i floor_tile_hybrid;
+		Vector2i floor_tile_industrial;
+		Vector2i floor_tile_alien;
 		Vector2i wall_tile_organic;
 		Vector2i wall_tile_hybrid;
 		Vector2i wall_tile_industrial;
 		Vector2i wall_tile_alien;
+
+		// Biomes enabled
+		bool alien_enabled;
+		bool organic_enabled;
+		bool industrial_enabled;
+		bool hybrid_enabled;
 
 		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size);
 
@@ -70,8 +79,16 @@ namespace godot
 		// tiles
 		void set_tile_source_id(const int id);
 		int get_tile_source_id() const;
-		void set_floor_tile(const Vector2i t);
-		Vector2i get_floor_tile() const;
+
+		void set_floor_tile_organic(const Vector2i t);
+		Vector2i get_floor_tile_organic() const;
+		void set_floor_tile_hybrid(const Vector2i t);
+		Vector2i get_floor_tile_hybrid() const;
+		void set_floor_tile_industrial(const Vector2i t);
+		Vector2i get_floor_tile_industrial() const;
+		void set_floor_tile_alien(const Vector2i t);
+		Vector2i get_floor_tile_alien() const;
+
 		void set_wall_tile_organic(const Vector2i t);
 		Vector2i get_wall_tile_organic() const;
 		void set_wall_tile_hybrid(const Vector2i t);
@@ -80,6 +97,15 @@ namespace godot
 		Vector2i get_wall_tile_industrial() const;
 		void set_wall_tile_alien(const Vector2i t);
 		Vector2i get_wall_tile_alien() const;
+
+		void set_alien_enabled(const bool e);
+		bool get_alien_enabled() const;
+		void set_organic_enabled(const bool e);
+		bool get_organic_enabled() const;
+		void set_industrial_enabled(const bool e);
+		bool get_industrial_enabled() const;
+		void set_hybrid_enabled(const bool e);
+		bool get_hybrid_enabled() const;
 
 		void set_tile_map(const NodePath &new_map);
 		NodePath get_tile_map() const;

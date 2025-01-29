@@ -4,6 +4,11 @@ Chunk::Chunk()
 {
 }
 
+Chunk::Chunk(enum Biome b)
+    : biome{b}
+{
+}
+
 Chunk::~Chunk()
 {
 }
@@ -17,9 +22,30 @@ using namespace godot;
 void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generator)
 {
     int source_id = generator->get_tile_source_id();
-    Vector2i floor_tile_coords{generator->get_floor_tile()};
-    // TODO: Set based on biome
-    Vector2i wall_tile{generator->get_wall_tile_organic()};
+
+    // Get appropriate tiles for the biome
+    Vector2i floor_tile;
+    Vector2i wall_tile;
+    switch (biome)
+    {
+    case Biome::ALIEN:
+        floor_tile = generator->get_floor_tile_alien();
+        wall_tile = generator->get_wall_tile_alien();
+        break;
+    case Biome::INDUSTRIAL:
+        floor_tile = generator->get_floor_tile_industrial();
+        wall_tile = generator->get_wall_tile_industrial();
+        break;
+    case Biome::ORGANIC:
+        floor_tile = generator->get_floor_tile_organic();
+        wall_tile = generator->get_wall_tile_organic();
+        break;
+    case Biome::HYBRID:
+        floor_tile = generator->get_floor_tile_hybrid();
+        wall_tile = generator->get_wall_tile_hybrid();
+        break;
+    }
+
     Vector2i chunk_size{generator->get_chunk_size()};
     Vector2i top_right_cell{Vector2i(x, y) * chunk_size};
 
@@ -28,7 +54,7 @@ void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generato
     {
         for (int local_y{0}; local_y < chunk_size.y; local_y++)
         {
-            map->set_cell(top_right_cell + Vector2i(local_x, local_y), source_id, floor_tile_coords);
+            map->set_cell(top_right_cell + Vector2i(local_x, local_y), source_id, floor_tile);
         }
     }
 

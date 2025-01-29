@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 
+#include "chunk.h" // makes the vscode error shut up, scons handles the build fine tho
+
 #define PI 3.14159265 // close enough
 
 using namespace godot;
@@ -60,9 +62,6 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_tile_source_id", "id"), &TerrainGenerator::set_tile_source_id);
     ADD_PROPERTY(PropertyInfo(Variant::INT, "tile_source_id"), "set_tile_source_id", "get_tile_source_id");
     // floor, wall, etc
-    ClassDB::bind_method(D_METHOD("get_floor_tile"), &TerrainGenerator::get_floor_tile);
-    ClassDB::bind_method(D_METHOD("set_floor_tile", "t"), &TerrainGenerator::set_floor_tile);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile"), "set_floor_tile", "get_floor_tile");
     ClassDB::bind_method(D_METHOD("get_wall_tile_organic"), &TerrainGenerator::get_wall_tile_organic);
     ClassDB::bind_method(D_METHOD("set_wall_tile_organic", "t"), &TerrainGenerator::set_wall_tile_organic);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_organic"), "set_wall_tile_organic", "get_wall_tile_organic");
@@ -75,6 +74,33 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("get_wall_tile_alien"), &TerrainGenerator::get_wall_tile_alien);
     ClassDB::bind_method(D_METHOD("set_wall_tile_alien", "t"), &TerrainGenerator::set_wall_tile_alien);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_alien"), "set_wall_tile_alien", "get_wall_tile_alien");
+
+    ClassDB::bind_method(D_METHOD("get_floor_tile_organic"), &TerrainGenerator::get_floor_tile_organic);
+    ClassDB::bind_method(D_METHOD("set_floor_tile_organic", "t"), &TerrainGenerator::set_floor_tile_organic);
+    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_organic"), "set_floor_tile_organic", "get_floor_tile_organic");
+    ClassDB::bind_method(D_METHOD("get_floor_tile_hybrid"), &TerrainGenerator::get_floor_tile_hybrid);
+    ClassDB::bind_method(D_METHOD("set_floor_tile_hybrid", "t"), &TerrainGenerator::set_floor_tile_hybrid);
+    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_hybrid"), "set_floor_tile_hybrid", "get_floor_tile_hybrid");
+    ClassDB::bind_method(D_METHOD("get_floor_tile_industrial"), &TerrainGenerator::get_floor_tile_industrial);
+    ClassDB::bind_method(D_METHOD("set_floor_tile_industrial", "t"), &TerrainGenerator::set_floor_tile_industrial);
+    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_industrial"), "set_floor_tile_industrial", "get_floor_tile_industrial");
+    ClassDB::bind_method(D_METHOD("get_floor_tile_alien"), &TerrainGenerator::get_floor_tile_alien);
+    ClassDB::bind_method(D_METHOD("set_floor_tile_alien", "t"), &TerrainGenerator::set_floor_tile_alien);
+    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_alien"), "set_floor_tile_alien", "get_floor_tile_alien");
+
+    // enabled biomes
+    ClassDB::bind_method(D_METHOD("get_alien_enabled"), &TerrainGenerator::get_alien_enabled);
+    ClassDB::bind_method(D_METHOD("set_alien_enabled", "b"), &TerrainGenerator::set_alien_enabled);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "alien_enabled"), "set_alien_enabled", "get_alien_enabled");
+    ClassDB::bind_method(D_METHOD("get_industrial_enabled"), &TerrainGenerator::get_industrial_enabled);
+    ClassDB::bind_method(D_METHOD("set_industrial_enabled", "b"), &TerrainGenerator::set_industrial_enabled);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "industrial_enabled"), "set_industrial_enabled", "get_industrial_enabled");
+    ClassDB::bind_method(D_METHOD("get_organic_enabled"), &TerrainGenerator::get_organic_enabled);
+    ClassDB::bind_method(D_METHOD("set_organic_enabled", "b"), &TerrainGenerator::set_organic_enabled);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "organic_enabled"), "set_organic_enabled", "get_organic_enabled");
+    ClassDB::bind_method(D_METHOD("get_hybrid_enabled"), &TerrainGenerator::get_hybrid_enabled);
+    ClassDB::bind_method(D_METHOD("set_hybrid_enabled", "b"), &TerrainGenerator::set_hybrid_enabled);
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hybrid_enabled"), "set_hybrid_enabled", "get_hybrid_enabled");
 
     ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
 }
@@ -98,15 +124,48 @@ void TerrainGenerator::generate()
     // Create main rng object
     TerrainRNG main_rng{(unsigned int)seed};
 
-    // Create and initialize 2d array of empty chunks
+    // Create and initialize 2d array of empty chunks, setting their biomes appropriately
     chunks.clear();
     Vector2i map_size_chunks{Vector2i(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y))};
+    // Constants for determining biomes (awful code please ignore)
+    int biomes_enabled{0};
+    vector<Biome> biomes;
+    if (organic_enabled)
+    {
+        biomes_enabled++;
+        biomes.push_back(Biome::ORGANIC);
+    }
+    if (alien_enabled)
+    {
+        biomes_enabled++;
+        biomes.push_back(Biome::ALIEN);
+    }
+    if (hybrid_enabled)
+    {
+        biomes_enabled++;
+        biomes.push_back(Biome::HYBRID);
+    }
+    if (industrial_enabled)
+    {
+        biomes_enabled++;
+        biomes.push_back(Biome::INDUSTRIAL);
+    }
+    // Quit out if no biomes enabled
+    ERR_FAIL_COND_MSG(biomes_enabled < 1, "no biomes! must enable at least 1 to generate a map");
+
     for (int x{0}; x < map_size_chunks.x; x++)
     {
         vector<Chunk> v;
         for (int y{0}; y < map_size_chunks.y; y++)
         {
-            v.push_back(Chunk());
+            // normalize to [0, 1)
+            double biome_noise_val{(biome_noise.get_value((double)x, (double)y) / 2.0) + 1.0};
+            if (biome_noise_val == 1.0)
+                biome_noise_val = 0.9999;
+            // then to integers in range [0, biomes_enabled) so we can reference an array of enabled biome types
+            biome_noise_val *= biomes_enabled;
+
+            v.push_back(Chunk(biomes.at((unsigned int)biome_noise_val)));
         }
         chunks.push_back(v);
     }
@@ -184,16 +243,17 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
 
     // might be unneeded, we'll see how output works best
     // initialize to -1, 0 vectors
-    vector<vector<Vec2>> grid;
-    for (int x{0}; x < cells_x; ++x)
-    {
-        vector<Vec2> v;
-        for (int y{0}; y < cells_y; ++y)
-        {
-            v.push_back(Vec2{-1.0, 0.0});
-        }
-        grid.push_back(v);
-    }
+    // vector<vector<Vec2>> grid;
+    // for (int x{0}; x < cells_x; ++x)
+    // {
+    //     vector<Vec2> v;
+    //     for (int y{0}; y < cells_y; ++y)
+    //     {
+    //         v.push_back(Vec2{-1.0, 0.0});
+    //     }
+    //     grid.push_back(v);
+    // }
+    Vec2 grid[cells_x][cells_y];
 
     // Initial point
     vector<Vec2> active;
@@ -255,6 +315,7 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
     }
 }
 
+// Boilerplate hidden for your convenience (mutators/accessors)
 double TerrainGenerator::test_noise(Vector2i v)
 {
     return biome_noise.get_value(v.x, v.y);
@@ -318,14 +379,44 @@ int TerrainGenerator::get_tile_source_id() const
     return tile_source_id;
 }
 
-void TerrainGenerator::set_floor_tile(const Vector2i t)
+void TerrainGenerator::set_floor_tile_organic(const Vector2i t)
 {
-    floor_tile = t;
+    floor_tile_organic = t;
 }
 
-Vector2i TerrainGenerator::get_floor_tile() const
+Vector2i TerrainGenerator::get_floor_tile_organic() const
 {
-    return floor_tile;
+    return floor_tile_organic;
+}
+
+void TerrainGenerator::set_floor_tile_hybrid(const Vector2i t)
+{
+    floor_tile_hybrid = t;
+}
+
+Vector2i TerrainGenerator::get_floor_tile_hybrid() const
+{
+    return floor_tile_hybrid;
+}
+
+void TerrainGenerator::set_floor_tile_industrial(const Vector2i t)
+{
+    floor_tile_industrial = t;
+}
+
+Vector2i TerrainGenerator::get_floor_tile_industrial() const
+{
+    return floor_tile_industrial;
+}
+
+void TerrainGenerator::set_floor_tile_alien(const Vector2i t)
+{
+    floor_tile_alien = t;
+}
+
+Vector2i TerrainGenerator::get_floor_tile_alien() const
+{
+    return floor_tile_alien;
 }
 
 void TerrainGenerator::set_wall_tile_organic(const Vector2i t)
@@ -406,4 +497,44 @@ void TerrainGenerator::set_chunk_size(const Vector2i s)
 Vector2i TerrainGenerator::get_chunk_size() const
 {
     return chunk_size;
+}
+
+void TerrainGenerator::set_alien_enabled(const bool e)
+{
+    alien_enabled = e;
+}
+
+bool TerrainGenerator::get_alien_enabled() const
+{
+    return alien_enabled;
+}
+
+void TerrainGenerator::set_organic_enabled(const bool e)
+{
+    organic_enabled = e;
+}
+
+bool TerrainGenerator::get_organic_enabled() const
+{
+    return organic_enabled;
+}
+
+void TerrainGenerator::set_industrial_enabled(const bool e)
+{
+    industrial_enabled = e;
+}
+
+bool TerrainGenerator::get_industrial_enabled() const
+{
+    return industrial_enabled;
+}
+
+void TerrainGenerator::set_hybrid_enabled(const bool e)
+{
+    hybrid_enabled = e;
+}
+
+bool TerrainGenerator::get_hybrid_enabled() const
+{
+    return hybrid_enabled;
 }

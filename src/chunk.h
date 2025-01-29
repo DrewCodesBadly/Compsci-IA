@@ -2,18 +2,11 @@
 #define CHUNK_H
 #include <vector>
 #include "terrain_object.h"
+#include "biome.h"
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include <terrain_generator.h>
 
 using namespace godot;
-
-enum Biome
-{
-    INDUSTRIAL,
-    ALIEN,
-    HYBRID,
-    ORGANIC
-};
 
 class Chunk
 {
@@ -24,6 +17,7 @@ private:
 
 public:
     Chunk();
+    Chunk(enum Biome b);
     ~Chunk();
     void add_object(TerrainObject o);
     void generate(TileMapLayer *map, int x, int y, TerrainGenerator *generator);
