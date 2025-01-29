@@ -32,6 +32,7 @@ namespace godot
 		int scatter_tries{5};
 		double small_object_radius{3.0};
 		double large_object_radius{10.0};
+		int max_removed_objects;
 
 		vector<vector<Chunk>> chunks;
 
@@ -81,6 +82,8 @@ namespace godot
 		double get_small_object_radius() const;
 		void set_large_object_radius(const double r);
 		double get_large_object_radius() const;
+		void set_max_removed_objects(const int m);
+		int get_max_removed_objects() const;
 
 		// tiles
 		void set_tile_source_id(const int id);

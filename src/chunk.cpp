@@ -65,3 +65,12 @@ void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generato
         map->set_cell(o.get_pos(), source_id, wall_tile);
     }
 }
+
+// Removes num objects at random (based on main_rng) from the objects vector
+void Chunk::remove_random_objects(int num, TerrainRNG main_rng)
+{
+    for (int i{0}; i < num && objects.size() > 0; i++)
+    {
+        objects.erase(objects.begin() + (main_rng.next() % objects.size()));
+    }
+}

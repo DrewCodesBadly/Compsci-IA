@@ -55,6 +55,9 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("get_large_object_radius"), &TerrainGenerator::get_large_object_radius);
     ClassDB::bind_method(D_METHOD("set_large_object_radius", "r"), &TerrainGenerator::set_large_object_radius);
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "large_object_radius"), "set_large_object_radius", "get_large_object_radius");
+    ClassDB::bind_method(D_METHOD("get_max_removed_objects"), &TerrainGenerator::get_max_removed_objects);
+    ClassDB::bind_method(D_METHOD("set_max_removed_objects", "m"), &TerrainGenerator::set_max_removed_objects);
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "max_removed_objects"), "set_max_removed_objects", "get_max_removed_objects");
 
     // export properties for tiles
     // source id
@@ -175,7 +178,7 @@ void TerrainGenerator::generate()
             double biome_noise_val{normalize_and_trim(biome_noise.get_value(x, y), 1.25)};
             // Then to integers in range [0, biomes_enabled) so we can reference biomes
             biome_noise_val *= biomes_enabled;
-            v.push_back(Chunk(biomes[(unsigned int)biome_noise_val]));
+            v.push_back(Chunk(biomes[(int)biome_noise_val])); // int used instead of unsigned int to avoid crashes in case user inputs negative
         }
         chunks.push_back(v);
     }
@@ -198,10 +201,14 @@ void TerrainGenerator::generate()
     object_scatter(large_object_radius, scatter_tries);
 
     // Remove objects to change object density chunk to chunk
-    for (vector<Chunk> v : chunks)
+    for (int x{0}; x < chunks.size(); x++)
     {
-        for (Chunk c : v)
+        for (int y{0}; y < chunks[0].size(); y++)
         {
+            // Normalized and trimmed just like for biome noise
+            double val{normalize_and_trim(density_noise.get_value(x, y), 1.25)};
+            // Then to integers in range [0, max_removed_objects), and that many objects are removed from the chunk.
+            chunks[x][y].remove_random_objects((unsigned int)val * max_removed_objects, main_rng);
         }
     }
 
@@ -543,4 +550,14 @@ bool TerrainGenerator::get_hybrid_enabled() const
 TerrainRNG TerrainGenerator::get_main_rng() const
 {
     return main_rng;
+}
+
+void TerrainGenerator::set_max_removed_objects(const int m)
+{
+    max_removed_objects = m;
+}
+
+int TerrainGenerator::get_max_removed_objects() const
+{
+    return max_removed_objects;
 }

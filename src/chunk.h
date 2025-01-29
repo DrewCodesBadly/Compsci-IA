@@ -5,6 +5,7 @@
 #include "biome.h"
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include <terrain_generator.h>
+#include "terrain_rng.h" // seems to already be included but just in case :3
 
 using namespace godot;
 
@@ -21,6 +22,7 @@ public:
     ~Chunk();
     void add_object(TerrainObject o);
     void generate(TileMapLayer *map, int x, int y, TerrainGenerator *generator);
+    void remove_random_objects(int num, TerrainRNG main_rng);
 };
 
 #endif
