@@ -117,17 +117,29 @@ TerrainGenerator::~TerrainGenerator()
     // any needed cleanup here
 }
 
-// TODO: ADD
+// Takes an input in range [-1, 1] and transforms it to [0, 1), optionally trimming away the edges of the range
+double normalize_and_trim(double input, double trim_fac = 2.0)
+{
+    double val{input / trim_fac + 0.5};
+    // Clamp within [0, 1)
+    if (val >= 1.0)
+        val = 0.9999;
+    else if (val <= 0)
+        val = 0;
+    return val;
+}
+
+// Entrypoint for map generation
 void TerrainGenerator::generate()
 {
 
-    // Create main rng object
-    TerrainRNG main_rng{(unsigned int)seed};
+    // Instantiate new rng object as the main rng
+    main_rng = TerrainRNG((unsigned int)seed);
 
     // Create and initialize 2d array of empty chunks, setting their biomes appropriately
     chunks.clear();
     Vector2i map_size_chunks{Vector2i(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y))};
-    // Constants for determining biomes (awful code please ignore)
+    // Constants for determining biomes
     int biomes_enabled{0};
     vector<Biome> biomes;
     if (organic_enabled)
@@ -158,14 +170,12 @@ void TerrainGenerator::generate()
         vector<Chunk> v;
         for (int y{0}; y < map_size_chunks.y; y++)
         {
-            // normalize to [0, 1)
-            double biome_noise_val{(biome_noise.get_value((double)x, (double)y) / 2.0) + 1.0};
-            if (biome_noise_val == 1.0)
-                biome_noise_val = 0.9999;
-            // then to integers in range [0, biomes_enabled) so we can reference an array of enabled biome types
+            // Normalize to [0, 1)
+            // Also, to ensure a more even distribution of biomes edges of the range are trimmed a bit (actually pretty heavily)
+            double biome_noise_val{normalize_and_trim(biome_noise.get_value(x, y), 1.25)};
+            // Then to integers in range [0, biomes_enabled) so we can reference biomes
             biome_noise_val *= biomes_enabled;
-
-            v.push_back(Chunk(biomes.at((unsigned int)biome_noise_val)));
+            v.push_back(Chunk(biomes[(unsigned int)biome_noise_val]));
         }
         chunks.push_back(v);
     }
@@ -179,29 +189,21 @@ void TerrainGenerator::generate()
     // Clear tilemap before generating new stuff
     map->clear();
 
-    // Noise output tester
-    // for (int x{0}; x < size.x; ++x)
-    // {
-    //     for (int y{0}; y < size.y; ++y)
-    //     {
-    //         // personal note: . derefs from a class, -> derefs from a pointer, data types with * are a pointer
-    //         map->set_cell(
-    //             Vector2i{x, y},
-    //             tile_source_id,
-    //             Vector2i{(int)((biome_noise.get_value(Vec2{(double)x, (double)y}) + 1.0) * 2.5), 0});
-    //     }
-    // }
-
     // Object scatter passes
     // Pass 1: scatter small objects
-    object_scatter(small_object_radius, main_rng, scatter_tries);
+    object_scatter(small_object_radius, scatter_tries);
 
-    // // Pass 2: scatter large objects
-    // // Should naturally draw over small objects, so behavior will look about normal
-    object_scatter(large_object_radius, main_rng, scatter_tries);
+    // Pass 2: scatter large objects
+    // Should naturally draw over small objects, so behavior will look about normal
+    object_scatter(large_object_radius, scatter_tries);
 
     // Remove objects to change object density chunk to chunk
-    // TODO: Add
+    for (vector<Chunk> v : chunks)
+    {
+        for (Chunk c : v)
+        {
+        }
+    }
 
     // Designate tunnel chunks
     // TODO: add
@@ -235,7 +237,7 @@ void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double 
 */
 // k is number of attempts before the algorithm gives up
 // Note that the radius used will be double the object size
-void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
+void TerrainGenerator::object_scatter(double r, int k)
 {
     const double cell_size{r / sqrt(2)};
     const int cells_x{(int)ceil(size.x / cell_size) + 1};
@@ -243,17 +245,16 @@ void TerrainGenerator::object_scatter(double r, TerrainRNG main_rng, int k)
 
     // might be unneeded, we'll see how output works best
     // initialize to -1, 0 vectors
-    // vector<vector<Vec2>> grid;
-    // for (int x{0}; x < cells_x; ++x)
-    // {
-    //     vector<Vec2> v;
-    //     for (int y{0}; y < cells_y; ++y)
-    //     {
-    //         v.push_back(Vec2{-1.0, 0.0});
-    //     }
-    //     grid.push_back(v);
-    // }
-    Vec2 grid[cells_x][cells_y];
+    vector<vector<Vec2>> grid;
+    for (int x{0}; x < cells_x; ++x)
+    {
+        vector<Vec2> v;
+        for (int y{0}; y < cells_y; ++y)
+        {
+            v.push_back(Vec2{-1.0, 0.0});
+        }
+        grid.push_back(v);
+    }
 
     // Initial point
     vector<Vec2> active;
@@ -537,4 +538,9 @@ void TerrainGenerator::set_hybrid_enabled(const bool e)
 bool TerrainGenerator::get_hybrid_enabled() const
 {
     return hybrid_enabled;
+}
+
+TerrainRNG TerrainGenerator::get_main_rng() const
+{
+    return main_rng;
 }

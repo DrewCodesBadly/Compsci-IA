@@ -10,7 +10,8 @@ public:
     double dot(Vec2 v);
     double dist(Vec2 v);
     Vec2 vecFloor();
-    Vec2(double n);
+    Vec2();
+    Vec2(double n = -1.0);
     Vec2(double x, double y);
     ~Vec2();
 };

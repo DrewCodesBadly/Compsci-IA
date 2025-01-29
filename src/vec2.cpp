@@ -12,10 +12,6 @@ Vec2::Vec2(double n)
 {
 }
 
-Vec2::Vec2()
-{
-}
-
 Vec2::~Vec2() {}
 
 double Vec2::dot(Vec2 v)

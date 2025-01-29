@@ -3,6 +3,7 @@
 
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/tile_map_layer.hpp>
+// #include <godot_cpp/classes/noise.hpp>
 #include "noise.h"
 #include "terrain_rng.h"
 #include "biome.h"
@@ -27,6 +28,7 @@ namespace godot
 		Vector2i chunk_size;
 		Noise biome_noise;
 		Noise density_noise;
+
 		int scatter_tries{5};
 		double small_object_radius{3.0};
 		double large_object_radius{10.0};
@@ -50,6 +52,10 @@ namespace godot
 		bool industrial_enabled;
 		bool hybrid_enabled;
 
+		TerrainRNG main_rng;
+
+		double test_noise(Vector2i v);
+		void object_scatter(double r, int k);
 		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size);
 
 	protected:
@@ -109,8 +115,8 @@ namespace godot
 
 		void set_tile_map(const NodePath &new_map);
 		NodePath get_tile_map() const;
-		double test_noise(Vector2i v);
-		void object_scatter(double r, TerrainRNG main_rng, int k);
+
+		TerrainRNG get_main_rng() const;
 
 		void generate();
 	};
