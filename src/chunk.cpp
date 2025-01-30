@@ -58,11 +58,19 @@ void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generato
         }
     }
 
-    // Generate each object in this chunk's object list
-    // TODO: Proper object generation
-    for (TerrainObject o : objects)
+    // Generate as a tunnel chunk
+    if (tunnel)
     {
-        map->set_cell(o.get_pos(), source_id, wall_tile);
+    }
+    // Standard generation
+    else
+    {
+        // Generate each object in this chunk's object list
+        // TODO: Proper object generation
+        for (TerrainObject o : objects)
+        {
+            map->set_cell(o.get_pos(), source_id, wall_tile);
+        }
     }
 }
 
@@ -73,4 +81,15 @@ void Chunk::remove_random_objects(int num, TerrainRNG main_rng)
     {
         objects.erase(objects.begin() + (main_rng.next() % objects.size()));
     }
+}
+
+// TODO: Proper implementation
+void Chunk::set_tunnel()
+{
+    tunnel = true;
+}
+
+enum Biome Chunk::get_biome() const
+{
+    return biome;
 }

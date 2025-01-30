@@ -91,6 +91,17 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_floor_tile_alien", "t"), &TerrainGenerator::set_floor_tile_alien);
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_alien"), "set_floor_tile_alien", "get_floor_tile_alien");
 
+    // tunnels
+    ClassDB::bind_method(D_METHOD("get_tunnel_distance"), &TerrainGenerator::get_tunnel_dist);
+    ClassDB::bind_method(D_METHOD("set_tunnel_distance", "d"), &TerrainGenerator::set_tunnel_dist);
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "tunnel_distance"), "set_tunnel_distance", "get_tunnel_distance");
+    ClassDB::bind_method(D_METHOD("get_tunnel_length_max"), &TerrainGenerator::get_tunnel_length_max);
+    ClassDB::bind_method(D_METHOD("set_tunnel_length_max", "l"), &TerrainGenerator::set_tunnel_length_max);
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "tunnel_length_max"), "set_tunnel_length_max", "get_tunnel_length_max");
+    ClassDB::bind_method(D_METHOD("get_tunnel_length_min"), &TerrainGenerator::get_tunnel_length_min);
+    ClassDB::bind_method(D_METHOD("set_tunnel_length_min", "l"), &TerrainGenerator::set_tunnel_length_min);
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "tunnel_length_min"), "set_tunnel_length_min", "get_tunnel_length_min");
+
     // enabled biomes
     ClassDB::bind_method(D_METHOD("get_alien_enabled"), &TerrainGenerator::get_alien_enabled);
     ClassDB::bind_method(D_METHOD("set_alien_enabled", "b"), &TerrainGenerator::set_alien_enabled);
@@ -135,14 +146,17 @@ double normalize_and_trim(double input, double trim_fac = 2.0)
 // Entrypoint for map generation
 void TerrainGenerator::generate()
 {
-
-    // Instantiate new rng object as the main rng
-    main_rng = TerrainRNG((unsigned int)seed);
-
-    // Create and initialize 2d array of empty chunks, setting their biomes appropriately
-    chunks.clear();
-    Vector2i map_size_chunks{Vector2i(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y))};
-    // Constants for determining biomes
+    // Checks for valid parameters
+    // Get a proprer reference to the tile map from the stored node path - print error and return if there is no valid TileMapLayer node provided
+    Node *map_node = get_node_or_null(tile_map);
+    ERR_FAIL_NULL_MSG(map_node, "Invalid tile map node path given!");
+    TileMapLayer *map = Object::cast_to<TileMapLayer>(map_node);
+    ERR_FAIL_NULL_MSG(map_node, "Tile map path does not point to a TileMapLayer!");
+    ERR_FAIL_COND_MSG(tunnel_length_min > tunnel_length_max, "tunnel_length_min must be greater than tunnel_length_max!");
+    ERR_FAIL_COND_MSG(scatter_tries <= 0, "Scatter tries must be greater than 0 for the scattering algorithm to work properly.");
+    ERR_FAIL_COND_MSG(size.x <= 0 || size.y <= 0, "Map size must be >= 0 in both axes for a valid map to be generated.");
+    ERR_FAIL_COND_MSG(chunk_size.x <= 0 || chunk_size.y <= 0, "Chunk size must be >= 0 in both axes for a valid map to be generated.");
+    // Constants for determining biomes - also checks to make sure at least one biome is enabled
     int biomes_enabled{0};
     vector<Biome> biomes;
     if (organic_enabled)
@@ -165,8 +179,15 @@ void TerrainGenerator::generate()
         biomes_enabled++;
         biomes.push_back(Biome::INDUSTRIAL);
     }
-    // Quit out if no biomes enabled
+    // Error and return if no biomes are enabled
     ERR_FAIL_COND_MSG(biomes_enabled < 1, "no biomes! must enable at least 1 to generate a map");
+
+    // Instantiate new rng object as the main rng
+    main_rng = TerrainRNG((unsigned int)seed);
+
+    // Create and initialize 2d array of empty chunks, setting their biomes appropriately
+    chunks.clear();
+    Vector2i map_size_chunks{Vector2i(ceil((double)size.x / chunk_size.x), ceil((double)size.y / chunk_size.y))};
 
     for (int x{0}; x < map_size_chunks.x; x++)
     {
@@ -182,12 +203,6 @@ void TerrainGenerator::generate()
         }
         chunks.push_back(v);
     }
-
-    // Get a proprer reference to the tile map from the stored node path
-    Node *map_node = get_node_or_null(tile_map);
-    ERR_FAIL_NULL_MSG(map_node, "invalid tile map node path given");
-    TileMapLayer *map = Object::cast_to<TileMapLayer>(map_node);
-    ERR_FAIL_NULL_MSG(map_node, "tile map path does not point to a TileMapLayer");
 
     // Clear tilemap before generating new stuff
     map->clear();
@@ -212,8 +227,19 @@ void TerrainGenerator::generate()
         }
     }
 
-    // Designate tunnel chunks
-    // TODO: add
+    // Designate tunnel starting points - uses a modified poisson disk algorithm similar to poisson disk
+    vector<Vec2> points = point_scatter(tunnel_dist, scatter_tries);
+    // Create a tunnel for each point
+    for (Vec2 p : points)
+    {
+        // Find the tunnel's end point
+        double tunnel_angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
+        double tunnel_len{(double)main_rng.next() / UINT_MAX * (tunnel_length_max - tunnel_length_min) + tunnel_length_min};
+        Vec2 end_point{p.x + (tunnel_len * cos(tunnel_angle)), p.y + (tunnel_len * sin(tunnel_angle))};
+
+        // Create a chain of chunks in a tunnel formation
+        Chunk start_chunk{chunks[(int)p.x / chunk_size.x][(int)p.y / chunk_size.y]};
+    }
 
     // Generate chunks
     for (int x{0}; x < chunks.size(); x++)
@@ -321,6 +347,92 @@ void TerrainGenerator::object_scatter(double r, int k)
             active.erase(active.begin() + idx);
         }
     }
+}
+
+// Similar to object_scatter but instead returns a list of points
+// Basically copied and pasted, somewhat inefficient but whatever
+vector<Vec2> TerrainGenerator::point_scatter(double r, int k)
+{
+    const double cell_size{r / sqrt(2)};
+    const int cells_x{(int)ceil(size.x / cell_size) + 1};
+    const int cells_y{(int)ceil(size.y / cell_size) + 1};
+
+    // might be unneeded, we'll see how output works best
+    // initialize to -1, 0 vectors
+    vector<vector<Vec2>> grid;
+    for (int x{0}; x < cells_x; ++x)
+    {
+        vector<Vec2> v;
+        for (int y{0}; y < cells_y; ++y)
+        {
+            v.push_back(Vec2{-1.0, 0.0});
+        }
+        grid.push_back(v);
+    }
+
+    // Initial point
+    vector<Vec2> active;
+    vector<Vec2> points;
+    Vec2 p0{(double)(main_rng.next() % size.x), (double)(main_rng.next() % size.y)};
+    points.push_back(p0);
+    grid[(int)p0.x / cell_size][(int)p0.y / cell_size] = p0;
+    active.push_back(p0);
+
+    bool success;
+    while (active.size() > 0)
+    {
+        // Pick a random active point
+        unsigned long long idx{main_rng.next() % active.size()};
+        Vec2 point = active[idx];
+
+        // Try up to k times to find a new point
+        success = false;
+        for (int i{0}; i < k; ++i)
+        {
+            // Pick point random angle away between r and 2r distance
+            // Uses a random angle + distance and basic trig
+            double angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
+            double dist{(double)main_rng.next() / UINT_MAX * r + r};
+            Vec2 new_point{point.x + (dist * cos(angle)), point.y + (dist * sin(angle))};
+
+            // Check neighboring cells to determine if this point is valid
+            // Code will continue as soon as it determines the point is invalid, otherwise set success to true
+            // Check if point is inbounds
+            if (new_point.x < 0 || new_point.y < 0 || new_point.x >= size.x || new_point.y >= size.y)
+                continue;
+
+            // Check 8 neighbor cells
+            bool valid{true};
+            int x{(int)(new_point.x / cell_size)}, y{(int)(new_point.y / cell_size)};
+            int x_min{std::max(x - 1, 0)}, x_max{std::min(x + 1, cells_x - 1)};
+            int y_min{std::max(y - 1, 0)}, y_max{std::min(y + 1, cells_y - 1)};
+            for (int x{x_min}; x <= x_max; ++x)
+            {
+                for (int y{y_min}; y <= y_max; ++y)
+                {
+                    if (grid[x][y].x != -1.0 && new_point.dist(grid[x][y]) < r)
+                        valid = false;
+                }
+            }
+            if (!valid)
+                continue;
+
+            // Nothing went wrong so we add the point and break out of the for loop
+            active.push_back(new_point);
+            points.push_back(new_point);
+            grid[(int)new_point.x / cell_size][(int)new_point.y / cell_size] = new_point;
+            success = true;
+            break;
+        }
+
+        // Add new point or remove p from active
+        if (!success)
+        {
+            active.erase(active.begin() + idx);
+        }
+    }
+
+    return points;
 }
 
 // Boilerplate hidden for your convenience (mutators/accessors)
@@ -560,4 +672,34 @@ void TerrainGenerator::set_max_removed_objects(const int m)
 int TerrainGenerator::get_max_removed_objects() const
 {
     return max_removed_objects;
+}
+
+void TerrainGenerator::set_tunnel_dist(const double d)
+{
+    tunnel_dist = d;
+}
+
+double TerrainGenerator::get_tunnel_dist() const
+{
+    return tunnel_dist;
+}
+
+void TerrainGenerator::set_tunnel_length_max(const double l)
+{
+    tunnel_length_max = l;
+}
+
+double TerrainGenerator::get_tunnel_length_max() const
+{
+    return tunnel_length_max;
+}
+
+void TerrainGenerator::set_tunnel_length_min(const double l)
+{
+    tunnel_length_min = l;
+}
+
+double TerrainGenerator::get_tunnel_length_min() const
+{
+    return tunnel_length_min;
 }

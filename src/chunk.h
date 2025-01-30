@@ -23,6 +23,8 @@ public:
     void add_object(TerrainObject o);
     void generate(TileMapLayer *map, int x, int y, TerrainGenerator *generator);
     void remove_random_objects(int num, TerrainRNG main_rng);
+    void set_tunnel();
+    enum Biome get_biome() const;
 };
 
 #endif

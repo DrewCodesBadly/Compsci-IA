@@ -32,7 +32,12 @@ namespace godot
 		int scatter_tries{5};
 		double small_object_radius{3.0};
 		double large_object_radius{10.0};
-		int max_removed_objects;
+		int max_removed_objects; // will not cause errors if <= 0
+
+		// Tunnel customization
+		double tunnel_dist;
+		double tunnel_length_max;
+		double tunnel_length_min;
 
 		vector<vector<Chunk>> chunks;
 
@@ -57,6 +62,7 @@ namespace godot
 
 		double test_noise(Vector2i v);
 		void object_scatter(double r, int k);
+		vector<Vec2> point_scatter(double r, int k);
 		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size);
 
 	protected:
@@ -118,6 +124,13 @@ namespace godot
 
 		void set_tile_map(const NodePath &new_map);
 		NodePath get_tile_map() const;
+
+		void set_tunnel_dist(const double d);
+		double get_tunnel_dist() const;
+		void set_tunnel_length_max(const double l);
+		double get_tunnel_length_max() const;
+		void set_tunnel_length_min(const double l);
+		double get_tunnel_length_min() const;
 
 		TerrainRNG get_main_rng() const;
 
