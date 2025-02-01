@@ -84,9 +84,11 @@ void Chunk::remove_random_objects(int num, TerrainRNG main_rng)
 }
 
 // TODO: Proper implementation
-void Chunk::set_tunnel()
+void Chunk::set_tunnel(Vector2i enter, Vector2i exit)
 {
     tunnel = true;
+    enter_direction = enter;
+    exit_direction = exit;
 }
 
 enum Biome Chunk::get_biome() const

@@ -232,13 +232,86 @@ void TerrainGenerator::generate()
     // Create a tunnel for each point
     for (Vec2 p : points)
     {
-        // Find the tunnel's end point
-        double tunnel_angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
-        double tunnel_len{(double)main_rng.next() / UINT_MAX * (tunnel_length_max - tunnel_length_min) + tunnel_length_min};
-        Vec2 end_point{p.x + (tunnel_len * cos(tunnel_angle)), p.y + (tunnel_len * sin(tunnel_angle))};
+        // Find the tunnel's end point - attempts scatter_tries times to find a valid, inbounds end point
+        // If no point is found the tunnel will simply not generate.
+        Vector2i end_chunk_pos;
+        bool success{false};
+        for (int i{0}; i < scatter_tries; i++)
+        {
+            double tunnel_angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
+            double tunnel_len{(double)main_rng.next() / UINT_MAX * (tunnel_length_max - tunnel_length_min) + tunnel_length_min};
+            Vector2i end_chunk_pos{(int)(p.x + (tunnel_len * cos(tunnel_angle))) / chunk_size.x, (int)(p.y + (tunnel_len * sin(tunnel_angle)) / chunk_size.y)};
+            if (end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size())
+                continue;
+            else
+            {
+                success = true;
+                break;
+            }
+        }
 
         // Create a chain of chunks in a tunnel formation
-        Chunk start_chunk{chunks[(int)p.x / chunk_size.x][(int)p.y / chunk_size.y]};
+        Vector2i start_chunk_pos{Vector2i((int)p.x / chunk_size.x, (int)p.y / chunk_size.y)};
+        Vector2i distance_to_end{end_chunk_pos - start_chunk_pos};
+        distance_to_end.x = abs(distance_to_end.x);
+        distance_to_end.y = abs(distance_to_end.y);
+        // (x > 0) - (x < 0) returns 1 if x is positive and -1 if x is negative. https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
+        // Just subtraction using booleans which are auto casted to 1 or 0, not as scary as it looks
+        Vector2i direction{Vector2i((distance_to_end.x > 0) - (distance_to_end.x < 0), (distance_to_end.y > 0) - (distance_to_end.y < 0))};
+
+        // Declaring variables to be used within the following while loop
+        Vector2i current_chunk_pos{start_chunk_pos};
+        // Set the entry direction into the tunnel to the opposite y or x direction at random
+        bool rand_entry{main_rng.next() % 2 == 0};
+        Vector2i entry_direction; // 100% initialized
+        if (rand_entry)
+            Vector2i entry_direction{Vector2i(-direction.x, 0)};
+        else
+            Vector2i entry_direction{Vector2i(0, -direction.y)};
+
+        // Randomly pick a direction to snake towards the end point, until close enough that a straight line must be taken to reach the end
+        while (distance_to_end.x > 0 && distance_to_end.y > 0)
+        {
+            // random 1 in 2
+            bool rand_dir{main_rng.next() % 2 == 0};
+            Vector2i next_chunk_pos; // 100% initialized
+            // move in x dir
+            if (rand_dir)
+            {
+                next_chunk_pos = current_chunk_pos + Vector2i(direction.x, 0);
+                distance_to_end.x--;
+            }
+            // move in y dir
+            else
+            {
+                next_chunk_pos = current_chunk_pos + Vector2i(0, direction.y);
+                distance_to_end.y--;
+            }
+
+            chunks[current_chunk_pos.x][current_chunk_pos.y].set_tunnel(entry_direction, next_chunk_pos - current_chunk_pos);
+            entry_direction = current_chunk_pos - next_chunk_pos;
+            current_chunk_pos = next_chunk_pos;
+        }
+
+        // Close any remaining distance (hardcoding this is just easier, less calculations needed)
+        while (distance_to_end.x > 0)
+        {
+            current_chunk_pos = current_chunk_pos + Vector2i(direction.x, 0);
+            chunks[current_chunk_pos.x][current_chunk_pos.y].set_tunnel(Vector2i(-direction.x, 0), Vector2i(direction.x, 0));
+        }
+        while (distance_to_end.y > 0)
+        {
+            current_chunk_pos = current_chunk_pos + Vector2i(0, direction.y);
+            chunks[current_chunk_pos.x][current_chunk_pos.y].set_tunnel(Vector2i(0, -direction.y), Vector2i(0, direction.y));
+        }
+
+        // Finally, set the ending chunk
+        bool rand_exit{main_rng.next() % 2 == 0};
+        // exit x
+        if (rand_exit)
+            chunks[end_chunk_pos.x][end_chunk_pos.y].set_tunnel(end_chunk_pos - current_chunk_pos, Vector2i(direction.x, 0));
+        else
+            chunks[end_chunk_pos.x][end_chunk_pos.y].set_tunnel(end_chunk_pos - current_chunk_pos, Vector2i(0, direction.y));
     }
 
     // Generate chunks

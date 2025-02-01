@@ -15,6 +15,8 @@ private:
     bool tunnel{false};
     std::vector<TerrainObject> objects;
     enum Biome biome;
+    Vector2i enter_direction;
+    Vector2i exit_direction;
 
 public:
     Chunk();
@@ -23,7 +25,8 @@ public:
     void add_object(TerrainObject o);
     void generate(TileMapLayer *map, int x, int y, TerrainGenerator *generator);
     void remove_random_objects(int num, TerrainRNG main_rng);
-    void set_tunnel();
+    // Expected that enter and exit are cardinal directions e.g. (1, 0)
+    void set_tunnel(Vector2i enter, Vector2i exit);
     enum Biome get_biome() const;
 };
 
