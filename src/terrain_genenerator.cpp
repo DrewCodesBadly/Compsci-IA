@@ -273,14 +273,14 @@ void TerrainGenerator::generate()
         bool rand_entry{main_rng.next() % 2 == 0};
         Vector2i entry_direction;
         if (rand_entry)
-            Vector2i entry_direction{Vector2i(-direction.x, 0)};
+            entry_direction = Vector2i(-direction.x, 0);
         else
-            Vector2i entry_direction{Vector2i(0, -direction.y)};
+            entry_direction = Vector2i(0, -direction.y);
         Vector2i next_chunk_pos;
 
         // prints info about each tunnel
-        godot::_err_print_error(FUNCTION_STR, __FILE__, __LINE__, "Method/function failed.",
-                                "tunnel data, start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
+        // godot::_err_print_error(FUNCTION_STR, __FILE__, __LINE__, "Method/function failed.",
+        //                         "tunnel data, start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
 
         // Randomly pick a direction to snake towards the end point, until close enough that a straight line must be taken to reach the end
         while (distance_to_end.x > 0 && distance_to_end.y > 0)
@@ -304,6 +304,10 @@ void TerrainGenerator::generate()
             //                   "oob chunk (1) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
             chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(entry_direction);
             chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(next_chunk_pos - current_chunk_pos);
+            // prints data about exits added to each chunk during this loop
+            // godot::_err_print_error(FUNCTION_STR, __FILE__, __LINE__, "Method/function failed.",
+            //                         "added entry dir: " + entry_direction + " added other exit: " + (next_chunk_pos - current_chunk_pos) +
+            //                             ", tunnel data, start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction + " @ " + current_chunk_pos);
             entry_direction = current_chunk_pos - next_chunk_pos;
             current_chunk_pos = next_chunk_pos;
         }
