@@ -240,24 +240,32 @@ void TerrainGenerator::generate()
         {
             double tunnel_angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
             double tunnel_len{(double)main_rng.next() / UINT_MAX * (tunnel_length_max - tunnel_length_min) + tunnel_length_min};
-            Vector2i end_chunk_pos{(int)(p.x + (tunnel_len * cos(tunnel_angle))) / chunk_size.x, (int)(p.y + (tunnel_len * sin(tunnel_angle)) / chunk_size.y)};
+            end_chunk_pos = Vector2i((int)((p.x + (tunnel_len * cos(tunnel_angle))) / chunk_size.x), (int)((p.y + (tunnel_len * sin(tunnel_angle))) / chunk_size.y));
             if (end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size())
+            {
                 continue;
+            }
             else
             {
                 success = true;
                 break;
             }
         }
+        if (!success)
+        {
+            continue;
+        }
 
         // Create a chain of chunks in a tunnel formation
-        Vector2i start_chunk_pos{Vector2i((int)p.x / chunk_size.x, (int)p.y / chunk_size.y)};
+        Vector2i start_chunk_pos{Vector2i((int)(p.x / chunk_size.x), (int)(p.y / chunk_size.y))};
+        ERR_FAIL_COND_MSG(start_chunk_pos.x < 0 || start_chunk_pos.x >= chunks.size() || start_chunk_pos.y < 0 || start_chunk_pos.y >= chunks[0].size(), "oob start chunk");
+        ERR_FAIL_COND_MSG(end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size(), "oob end chunk");
         Vector2i distance_to_end{end_chunk_pos - start_chunk_pos};
-        distance_to_end.x = abs(distance_to_end.x);
-        distance_to_end.y = abs(distance_to_end.y);
         // (x > 0) - (x < 0) returns 1 if x is positive and -1 if x is negative. https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
         // Just subtraction using booleans which are auto casted to 1 or 0, not as scary as it looks
         Vector2i direction{Vector2i((distance_to_end.x > 0) - (distance_to_end.x < 0), (distance_to_end.y > 0) - (distance_to_end.y < 0))};
+        distance_to_end.x = abs(distance_to_end.x);
+        distance_to_end.y = abs(distance_to_end.y);
 
         // Declaring variables to be used within the following while loop
         Vector2i current_chunk_pos{start_chunk_pos};
@@ -288,7 +296,11 @@ void TerrainGenerator::generate()
                 distance_to_end.y--;
             }
 
-            chunks[current_chunk_pos.x][current_chunk_pos.y].set_tunnel(entry_direction, next_chunk_pos - current_chunk_pos);
+            ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
+                              "oob chunk (1) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
+            Chunk current_chunk{chunks[current_chunk_pos.x][current_chunk_pos.y]};
+            current_chunk.add_exit(entry_direction);
+            current_chunk.add_exit(next_chunk_pos - current_chunk_pos);
             entry_direction = current_chunk_pos - next_chunk_pos;
             current_chunk_pos = next_chunk_pos;
         }
@@ -297,21 +309,40 @@ void TerrainGenerator::generate()
         while (distance_to_end.x > 0)
         {
             current_chunk_pos = current_chunk_pos + Vector2i(direction.x, 0);
-            chunks[current_chunk_pos.x][current_chunk_pos.y].set_tunnel(Vector2i(-direction.x, 0), Vector2i(direction.x, 0));
+            ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
+                              "oob chunk (2) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
+            Chunk current_chunk{chunks[current_chunk_pos.x][current_chunk_pos.y]};
+            current_chunk.add_exit(Vector2i(-direction.x, 0));
+            current_chunk.add_exit(Vector2i(direction.x, 0));
+            distance_to_end.x--;
         }
         while (distance_to_end.y > 0)
         {
             current_chunk_pos = current_chunk_pos + Vector2i(0, direction.y);
-            chunks[current_chunk_pos.x][current_chunk_pos.y].set_tunnel(Vector2i(0, -direction.y), Vector2i(0, direction.y));
+            ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
+                              "oob chunk (3)" + current_chunk_pos + " start: " + start_chunk_pos + " end: " + end_chunk_pos);
+            Chunk current_chunk{chunks[current_chunk_pos.x][current_chunk_pos.y]};
+            current_chunk.add_exit(Vector2i(0, -direction.y));
+            current_chunk.add_exit(Vector2i(0, direction.y));
+            distance_to_end.y--;
         }
 
         // Finally, set the ending chunk
         bool rand_exit{main_rng.next() % 2 == 0};
         // exit x
         if (rand_exit)
-            chunks[end_chunk_pos.x][end_chunk_pos.y].set_tunnel(end_chunk_pos - current_chunk_pos, Vector2i(direction.x, 0));
+        {
+            Chunk end_chunk{chunks[end_chunk_pos.x][end_chunk_pos.y]};
+            end_chunk.add_exit(end_chunk_pos - current_chunk_pos);
+            end_chunk.add_exit(Vector2i(direction.x, 0));
+        }
+        // exit y
         else
-            chunks[end_chunk_pos.x][end_chunk_pos.y].set_tunnel(end_chunk_pos - current_chunk_pos, Vector2i(0, direction.y));
+        {
+            Chunk end_chunk{chunks[end_chunk_pos.x][end_chunk_pos.y]};
+            end_chunk.add_exit(end_chunk_pos - current_chunk_pos);
+            end_chunk.add_exit(Vector2i(0, direction.y));
+        }
     }
 
     // Generate chunks

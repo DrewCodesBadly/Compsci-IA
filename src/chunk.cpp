@@ -61,6 +61,13 @@ void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generato
     // Generate as a tunnel chunk
     if (tunnel)
     {
+        for (int local_x{0}; local_x < chunk_size.x; local_x += 2)
+        {
+            for (int local_y{0}; local_y < chunk_size.y; local_y += 2)
+            {
+                map->set_cell(top_right_cell + Vector2i(local_x, local_y), source_id, wall_tile);
+            }
+        }
     }
     // Standard generation
     else
@@ -83,15 +90,22 @@ void Chunk::remove_random_objects(int num, TerrainRNG main_rng)
     }
 }
 
-// TODO: Proper implementation
-void Chunk::set_tunnel(Vector2i enter, Vector2i exit)
+void Chunk::add_exit(Vector2i exit)
 {
-    tunnel = true;
-    enter_direction = enter;
-    exit_direction = exit;
+    exits.push_back(exit);
 }
 
 enum Biome Chunk::get_biome() const
 {
     return biome;
+}
+
+bool Chunk::is_tunnel() const
+{
+    return tunnel;
+}
+
+void Chunk::make_tunnel()
+{
+    tunnel = true;
 }
