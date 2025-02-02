@@ -12,10 +12,13 @@ using namespace godot;
 class Chunk
 {
 private:
-    bool tunnel{false};
+    bool tunnel;
     std::vector<TerrainObject> objects;
     enum Biome biome;
-    vector<Vector2i> exits;
+    bool exit_north;
+    bool exit_south;
+    bool exit_east;
+    bool exit_west;
 
 public:
     Chunk();
@@ -26,7 +29,6 @@ public:
     void remove_random_objects(int num, TerrainRNG main_rng);
     // Expected that enter and exit are cardinal directions e.g. (1, 0)
     void add_exit(Vector2i exit);
-    void make_tunnel();
     bool is_tunnel() const;
     enum Biome get_biome() const;
 };

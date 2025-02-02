@@ -5,7 +5,7 @@ Chunk::Chunk()
 }
 
 Chunk::Chunk(enum Biome b)
-    : biome{b}
+    : biome{b}, tunnel{false}, exit_east{false}, exit_west{false}, exit_north{false}, exit_south{false}
 {
 }
 
@@ -47,28 +47,64 @@ void Chunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *generato
     }
 
     Vector2i chunk_size{generator->get_chunk_size()};
-    Vector2i top_right_cell{Vector2i(x, y) * chunk_size};
+    Vector2i top_left_cell{Vector2i(x, y) * chunk_size};
 
     // Fill whole chunk with floor tiles
     for (int local_x{0}; local_x < chunk_size.x; local_x++)
     {
         for (int local_y{0}; local_y < chunk_size.y; local_y++)
         {
-            map->set_cell(top_right_cell + Vector2i(local_x, local_y), source_id, floor_tile);
+            map->set_cell(top_left_cell + Vector2i(local_x, local_y), source_id, floor_tile);
         }
     }
 
     // Generate as a tunnel chunk
     if (tunnel)
     {
-        for (int local_x{0}; local_x < chunk_size.x; local_x += 2)
+        // Try each side individually - draws lines at the edges (debug tunnel)
+        if (!exit_north)
         {
-            for (int local_y{0}; local_y < chunk_size.y; local_y += 2)
+            for (Vector2i v{top_left_cell}; v.x < top_left_cell.x + chunk_size.x; v.x++)
             {
-                map->set_cell(top_right_cell + Vector2i(local_x, local_y), source_id, wall_tile);
+
+                map->set_cell(v, source_id, wall_tile);
             }
         }
+        if (!exit_south)
+        {
+            for (Vector2i v{top_left_cell + Vector2i(0, chunk_size.y - 1)}; v.x < top_left_cell.x + chunk_size.x; v.x++)
+            {
+
+                map->set_cell(v, source_id, wall_tile);
+            }
+        }
+        if (!exit_west)
+        {
+            for (Vector2i v{top_left_cell}; v.y < top_left_cell.y + chunk_size.y; v.y++)
+            {
+
+                map->set_cell(v, source_id, wall_tile);
+            }
+        }
+        if (!exit_east)
+        {
+            for (Vector2i v{top_left_cell + Vector2i(chunk_size.x - 1, 0)}; v.y < top_left_cell.y + chunk_size.y; v.y++)
+            {
+
+                map->set_cell(v, source_id, wall_tile);
+            }
+        }
+
+        // For testing purposes, make the chunk all floor tiles - not used anymore (hopefully)
+        // for (int local_x{0}; local_x < chunk_size.x; local_x += 2)
+        // {
+        //     for (int local_y{0}; local_y < chunk_size.y; local_y += 2)
+        //     {
+        //         map->set_cell(top_left_cell + Vector2i(local_x, local_y), source_id, wall_tile);
+        //     }
+        // }
     }
+
     // Standard generation
     else
     {
@@ -92,7 +128,24 @@ void Chunk::remove_random_objects(int num, TerrainRNG main_rng)
 
 void Chunk::add_exit(Vector2i exit)
 {
-    exits.push_back(exit);
+    tunnel = true;
+    // Match to the proper north, east, south, west boolean depending on the vector direction passed
+    if (exit.x > 0)
+    {
+        exit_east = true;
+    }
+    else if (exit.x < 0)
+    {
+        exit_west = true;
+    }
+    else if (exit.y > 0)
+    {
+        exit_south = true;
+    }
+    else
+    {
+        exit_north = true;
+    }
 }
 
 enum Biome Chunk::get_biome() const
@@ -103,9 +156,4 @@ enum Biome Chunk::get_biome() const
 bool Chunk::is_tunnel() const
 {
     return tunnel;
-}
-
-void Chunk::make_tunnel()
-{
-    tunnel = true;
 }

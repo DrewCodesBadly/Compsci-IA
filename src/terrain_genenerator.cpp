@@ -258,8 +258,8 @@ void TerrainGenerator::generate()
 
         // Create a chain of chunks in a tunnel formation
         Vector2i start_chunk_pos{Vector2i((int)(p.x / chunk_size.x), (int)(p.y / chunk_size.y))};
-        ERR_FAIL_COND_MSG(start_chunk_pos.x < 0 || start_chunk_pos.x >= chunks.size() || start_chunk_pos.y < 0 || start_chunk_pos.y >= chunks[0].size(), "oob start chunk");
-        ERR_FAIL_COND_MSG(end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size(), "oob end chunk");
+        // ERR_FAIL_COND_MSG(start_chunk_pos.x < 0 || start_chunk_pos.x >= chunks.size() || start_chunk_pos.y < 0 || start_chunk_pos.y >= chunks[0].size(), "oob start chunk");
+        // ERR_FAIL_COND_MSG(end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size(), "oob end chunk");
         Vector2i distance_to_end{end_chunk_pos - start_chunk_pos};
         // (x > 0) - (x < 0) returns 1 if x is positive and -1 if x is negative. https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
         // Just subtraction using booleans which are auto casted to 1 or 0, not as scary as it looks
@@ -271,18 +271,22 @@ void TerrainGenerator::generate()
         Vector2i current_chunk_pos{start_chunk_pos};
         // Set the entry direction into the tunnel to the opposite y or x direction at random
         bool rand_entry{main_rng.next() % 2 == 0};
-        Vector2i entry_direction; // 100% initialized
+        Vector2i entry_direction;
         if (rand_entry)
             Vector2i entry_direction{Vector2i(-direction.x, 0)};
         else
             Vector2i entry_direction{Vector2i(0, -direction.y)};
+        Vector2i next_chunk_pos;
+
+        // prints info about each tunnel
+        godot::_err_print_error(FUNCTION_STR, __FILE__, __LINE__, "Method/function failed.",
+                                "tunnel data, start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
 
         // Randomly pick a direction to snake towards the end point, until close enough that a straight line must be taken to reach the end
         while (distance_to_end.x > 0 && distance_to_end.y > 0)
         {
             // random 1 in 2
             bool rand_dir{main_rng.next() % 2 == 0};
-            Vector2i next_chunk_pos; // 100% initialized
             // move in x dir
             if (rand_dir)
             {
@@ -296,52 +300,49 @@ void TerrainGenerator::generate()
                 distance_to_end.y--;
             }
 
-            ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
-                              "oob chunk (1) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
-            Chunk current_chunk{chunks[current_chunk_pos.x][current_chunk_pos.y]};
-            current_chunk.add_exit(entry_direction);
-            current_chunk.add_exit(next_chunk_pos - current_chunk_pos);
+            // ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
+            //                   "oob chunk (1) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
+            chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(entry_direction);
+            chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(next_chunk_pos - current_chunk_pos);
             entry_direction = current_chunk_pos - next_chunk_pos;
             current_chunk_pos = next_chunk_pos;
         }
+        // Finish the last chunk in the loop
+        chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(entry_direction);
+        chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(distance_to_end.x > 0 ? Vector2i(direction.x, 0) : Vector2i(0, direction.y));
 
         // Close any remaining distance (hardcoding this is just easier, less calculations needed)
-        while (distance_to_end.x > 0)
+        while (distance_to_end.x > 1)
         {
             current_chunk_pos = current_chunk_pos + Vector2i(direction.x, 0);
-            ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
-                              "oob chunk (2) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
-            Chunk current_chunk{chunks[current_chunk_pos.x][current_chunk_pos.y]};
-            current_chunk.add_exit(Vector2i(-direction.x, 0));
-            current_chunk.add_exit(Vector2i(direction.x, 0));
+            // ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
+            //                   "oob chunk (2) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
+            chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(-direction.x, 0));
+            chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(direction.x, 0));
             distance_to_end.x--;
         }
-        while (distance_to_end.y > 0)
+        while (distance_to_end.y > 1)
         {
             current_chunk_pos = current_chunk_pos + Vector2i(0, direction.y);
-            ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
-                              "oob chunk (3)" + current_chunk_pos + " start: " + start_chunk_pos + " end: " + end_chunk_pos);
-            Chunk current_chunk{chunks[current_chunk_pos.x][current_chunk_pos.y]};
-            current_chunk.add_exit(Vector2i(0, -direction.y));
-            current_chunk.add_exit(Vector2i(0, direction.y));
+            // ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
+            //                   "oob chunk (3)" + current_chunk_pos + " start: " + start_chunk_pos + " end: " + end_chunk_pos);
+            chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(0, -direction.y));
+            chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(0, direction.y));
             distance_to_end.y--;
         }
 
-        // Finally, set the ending chunk
+        // Finally, set the last chunk
+        chunks[end_chunk_pos.x][end_chunk_pos.y].add_exit(current_chunk_pos - end_chunk_pos);
         bool rand_exit{main_rng.next() % 2 == 0};
         // exit x
         if (rand_exit)
         {
-            Chunk end_chunk{chunks[end_chunk_pos.x][end_chunk_pos.y]};
-            end_chunk.add_exit(end_chunk_pos - current_chunk_pos);
-            end_chunk.add_exit(Vector2i(direction.x, 0));
+            chunks[end_chunk_pos.x][end_chunk_pos.y].add_exit(Vector2i(direction.x, 0));
         }
         // exit y
         else
         {
-            Chunk end_chunk{chunks[end_chunk_pos.x][end_chunk_pos.y]};
-            end_chunk.add_exit(end_chunk_pos - current_chunk_pos);
-            end_chunk.add_exit(Vector2i(0, direction.y));
+            chunks[end_chunk_pos.x][end_chunk_pos.y].add_exit(Vector2i(0, direction.y));
         }
     }
 
