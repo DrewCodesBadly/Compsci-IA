@@ -8,14 +8,15 @@
 #include "terrain_rng.h"
 #include "biome.h"
 #include <vector>
+// #include "terrain_chunk.h"
 
 using std::vector;
 
-// Forward declaration to avoid circular dependency in chunk.h
-class Chunk;
-
 namespace godot
 {
+
+	// Forward declaration to avoid circular dependency in chunk.h
+	class TerrainChunk;
 
 	class TerrainGenerator : public Node
 	{
@@ -35,11 +36,11 @@ namespace godot
 		int max_removed_objects; // will not cause errors if <= 0
 
 		// Tunnel customization
-		double tunnel_dist;
-		double tunnel_length_max;
-		double tunnel_length_min;
+		double room_dist;
+		Vector2i room_size_max;
+		Vector2i room_size_min;
 
-		vector<vector<Chunk>> chunks;
+		vector<vector<TerrainChunk>> chunks;
 
 		// tiles
 		int tile_source_id{-1};
@@ -71,6 +72,9 @@ namespace godot
 	public:
 		TerrainGenerator();
 		~TerrainGenerator();
+
+		Vector2i world_to_nearest_chunk_coords(Vector2 world);
+		Vector2 chunk_to_world_coords(Vector2i chunk_coords);
 
 		void set_seed(const int given_seed);
 		int get_seed() const;
@@ -125,12 +129,12 @@ namespace godot
 		void set_tile_map(const NodePath &new_map);
 		NodePath get_tile_map() const;
 
-		void set_tunnel_dist(const double d);
-		double get_tunnel_dist() const;
-		void set_tunnel_length_max(const double l);
-		double get_tunnel_length_max() const;
-		void set_tunnel_length_min(const double l);
-		double get_tunnel_length_min() const;
+		void set_room_dist(const double d);
+		double get_room_dist() const;
+		void set_room_size_max(const Vector2i s);
+		Vector2i get_room_size_max() const;
+		void set_room_size_min(const Vector2i s);
+		Vector2i get_room_size_min() const;
 
 		TerrainRNG get_main_rng() const;
 
