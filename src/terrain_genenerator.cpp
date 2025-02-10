@@ -168,6 +168,7 @@ void TerrainGenerator::generate()
     ERR_FAIL_COND_MSG(scatter_tries <= 0, "Scatter tries must be greater than 0 for the scattering algorithm to work properly.");
     ERR_FAIL_COND_MSG(size.x <= 0 || size.y <= 0, "Map size must be >= 0 in both axes for a valid map to be generated.");
     ERR_FAIL_COND_MSG(chunk_size.x <= 0 || chunk_size.y <= 0, "TerrainChunk size must be >= 0 in both axes for a valid map to be generated.");
+    ERR_FAIL_COND_MSG(room_size_max.x > room_size_min.x || room_size_max.y > room_size_min.y, "Max room size should be greater than min room size.");
     // Constants for determining biomes - also checks to make sure at least one biome is enabled
     int biomes_enabled{0};
     vector<Biome> biomes;
@@ -240,6 +241,41 @@ void TerrainGenerator::generate()
     }
 
     // Generate room positions and shapes, settings chunk wall positions
+    Vector2i max_min_room_diff{room_size_max - room_size_min};
+    vector<Vec2> room_points = point_scatter(room_dist, scatter_tries);
+    for (Vec2 p : room_points)
+    {
+        Vector2i room_size{Vector2i((main_rng.next() % max_min_room_diff.x) + room_size_min.x, (main_rng.next() % max_min_room_diff.y) + room_size_min.y)};
+        Vector2i top_left{world_to_nearest_chunk_coords(Vector2(p.x, p.y)) - (room_size / 2)}; // integer division is fine here
+        if (top_left.x < 0)
+            top_left.x = 0;
+        if (top_left.y < 0)
+            top_left.y = 0;
+        Vector2i bottom_right{top_left + room_size};
+        if (bottom_right.x < chunks.size() - 1)
+            bottom_right.x = chunks.size() - 1;
+        if (bottom_right.y < chunks[0].size() - 1)
+            bottom_right.y = chunks[0].size() - 1;
+        Vector2i current_chunk{top_left};
+
+        // Iterate through all chunks in the room, creating walls and flagging them as not empty (actually part of the map)
+        for (current_chunk.x; current_chunk.x <= bottom_right.x; current_chunk.x++)
+        {
+            for (current_chunk.y; current_chunk.y <= bottom_right.y; current_chunk.y++)
+            {
+                TerrainChunk c = chunks[current_chunk.x][current_chunk.y];
+                c.set_non_empty();
+                if (current_chunk.x == top_left.x)
+                    c.add_wall(Vector2i(-1, 0));
+                else if (current_chunk.x == bottom_right.x)
+                    c.add_wall(Vector2i(1, 0));
+                if (current_chunk.y == top_left.y)
+                    c.add_wall(Vector2i(0, -1));
+                else if (current_chunk.y == bottom_right.y)
+                    c.add_wall(Vector2i(0, 1));
+            }
+        }
+    }
 
     // Generate tunnels connecting rooms
 

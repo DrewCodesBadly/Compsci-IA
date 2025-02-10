@@ -30,7 +30,7 @@ namespace godot
 		Noise biome_noise;
 		Noise density_noise;
 
-		int scatter_tries{5};
+		int scatter_tries{30};
 		double small_object_radius{3.0};
 		double large_object_radius{10.0};
 		int max_removed_objects; // will not cause errors if <= 0

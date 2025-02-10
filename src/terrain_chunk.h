@@ -11,9 +11,9 @@ using namespace godot;
 
 namespace godot
 {
-    class TerrainChunk : public Node2D
+    class TerrainChunk : public Resource
     {
-        GDCLASS(TerrainChunk, Node2D);
+        GDCLASS(TerrainChunk, Resource);
 
     private:
         Array wall_directions;
