@@ -96,10 +96,10 @@ void TerrainGenerator::_bind_methods()
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "room_distance"), "set_room_distance", "get_room_distance");
     ClassDB::bind_method(D_METHOD("get_room_size_max"), &TerrainGenerator::get_room_size_max);
     ClassDB::bind_method(D_METHOD("set_room_size_max", "l"), &TerrainGenerator::set_room_size_max);
-    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "room_size_max"), "set_room_size_max", "get_room_size_max");
+    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "room_size_max"), "set_room_size_max", "get_room_size_max");
     ClassDB::bind_method(D_METHOD("get_room_size_min"), &TerrainGenerator::get_room_size_min);
     ClassDB::bind_method(D_METHOD("set_room_size_min", "l"), &TerrainGenerator::set_room_size_min);
-    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "room_size_min"), "set_room_size_min", "get_room_size_min");
+    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "room_size_min"), "set_room_size_min", "get_room_size_min");
 
     // enabled biomes
     ClassDB::bind_method(D_METHOD("get_alien_enabled"), &TerrainGenerator::get_alien_enabled);
@@ -168,7 +168,7 @@ void TerrainGenerator::generate()
     ERR_FAIL_COND_MSG(scatter_tries <= 0, "Scatter tries must be greater than 0 for the scattering algorithm to work properly.");
     ERR_FAIL_COND_MSG(size.x <= 0 || size.y <= 0, "Map size must be >= 0 in both axes for a valid map to be generated.");
     ERR_FAIL_COND_MSG(chunk_size.x <= 0 || chunk_size.y <= 0, "TerrainChunk size must be >= 0 in both axes for a valid map to be generated.");
-    ERR_FAIL_COND_MSG(room_size_max.x > room_size_min.x || room_size_max.y > room_size_min.y, "Max room size should be greater than min room size.");
+    ERR_FAIL_COND_MSG(room_size_max.x < room_size_min.x || room_size_max.y < room_size_min.y, "Max room size should be greater than min room size.");
     // Constants for determining biomes - also checks to make sure at least one biome is enabled
     int biomes_enabled{0};
     vector<Biome> biomes;
