@@ -1,6 +1,7 @@
 #include "register_types.h"
 
 #include "terrain_generator.h"
+#include "chunk_data.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -14,6 +15,7 @@ void initialize_example_module(ModuleInitializationLevel p_level)
         return;
 
     GDREGISTER_CLASS(TerrainGenerator);
+    GDREGISTER_CLASS(ChunkData);
 }
 
 void uninitialize_example_module(ModuleInitializationLevel p_level)

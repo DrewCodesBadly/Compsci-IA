@@ -24,7 +24,6 @@ namespace godot
 
 	private:
 		int seed{0};
-		NodePath tile_map;
 		Vector2i size;
 		Vector2i chunk_size;
 		Noise biome_noise;
@@ -42,17 +41,6 @@ namespace godot
 
 		vector<vector<TerrainChunk>> chunks;
 
-		// tiles
-		int tile_source_id{-1};
-		Vector2i floor_tile_organic;
-		Vector2i floor_tile_hybrid;
-		Vector2i floor_tile_industrial;
-		Vector2i floor_tile_alien;
-		Vector2i wall_tile_organic;
-		Vector2i wall_tile_hybrid;
-		Vector2i wall_tile_industrial;
-		Vector2i wall_tile_alien;
-
 		// Biomes enabled
 		bool alien_enabled;
 		bool organic_enabled;
@@ -61,10 +49,15 @@ namespace godot
 
 		TerrainRNG main_rng;
 
+		// Data output for godot usage
+		Array first_scatter_pass_points;
+		Array second_scatter_pass_points;
+		Array chunks_gd;
+
 		double test_noise(Vector2i v);
-		void object_scatter(double r, int k);
+		void object_scatter(double r, int k, int pass_idx);
 		vector<Vec2> point_scatter(double r, int k);
-		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size);
+		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size, int pass_idx);
 
 	protected:
 		static void _bind_methods();
@@ -95,28 +88,6 @@ namespace godot
 		void set_max_removed_objects(const int m);
 		int get_max_removed_objects() const;
 
-		// tiles
-		void set_tile_source_id(const int id);
-		int get_tile_source_id() const;
-
-		void set_floor_tile_organic(const Vector2i t);
-		Vector2i get_floor_tile_organic() const;
-		void set_floor_tile_hybrid(const Vector2i t);
-		Vector2i get_floor_tile_hybrid() const;
-		void set_floor_tile_industrial(const Vector2i t);
-		Vector2i get_floor_tile_industrial() const;
-		void set_floor_tile_alien(const Vector2i t);
-		Vector2i get_floor_tile_alien() const;
-
-		void set_wall_tile_organic(const Vector2i t);
-		Vector2i get_wall_tile_organic() const;
-		void set_wall_tile_hybrid(const Vector2i t);
-		Vector2i get_wall_tile_hybrid() const;
-		void set_wall_tile_industrial(const Vector2i t);
-		Vector2i get_wall_tile_industrial() const;
-		void set_wall_tile_alien(const Vector2i t);
-		Vector2i get_wall_tile_alien() const;
-
 		void set_alien_enabled(const bool e);
 		bool get_alien_enabled() const;
 		void set_organic_enabled(const bool e);
@@ -139,6 +110,10 @@ namespace godot
 		TerrainRNG get_main_rng() const;
 
 		void generate();
+
+		Array get_first_scatter_pass_points();
+		Array get_second_scatter_pass_points();
+		Array get_chunks();
 	};
 }
 

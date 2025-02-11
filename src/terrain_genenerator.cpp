@@ -18,11 +18,6 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_seed", "given_seed"), &TerrainGenerator::set_seed);
     ADD_PROPERTY(PropertyInfo(Variant::INT, "seed"), "set_seed", "get_seed");
 
-    // Reference to tilemap this will generate to
-    ClassDB::bind_method(D_METHOD("get_tile_map"), &TerrainGenerator::get_tile_map);
-    ClassDB::bind_method(D_METHOD("set_tile_map", "tile_map"), &TerrainGenerator::set_tile_map);
-    ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "tile_map"), "set_tile_map", "get_tile_map");
-
     // size property
     ClassDB::bind_method(D_METHOD("get_size"), &TerrainGenerator::get_size);
     ClassDB::bind_method(D_METHOD("set_size", "s"), &TerrainGenerator::set_size);
@@ -58,39 +53,7 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_max_removed_objects", "m"), &TerrainGenerator::set_max_removed_objects);
     ADD_PROPERTY(PropertyInfo(Variant::INT, "max_removed_objects"), "set_max_removed_objects", "get_max_removed_objects");
 
-    // export properties for tiles
-    // source id
-    ClassDB::bind_method(D_METHOD("get_tile_source_id"), &TerrainGenerator::get_tile_source_id);
-    ClassDB::bind_method(D_METHOD("set_tile_source_id", "id"), &TerrainGenerator::set_tile_source_id);
-    ADD_PROPERTY(PropertyInfo(Variant::INT, "tile_source_id"), "set_tile_source_id", "get_tile_source_id");
-    // floor, wall, etc
-    ClassDB::bind_method(D_METHOD("get_wall_tile_organic"), &TerrainGenerator::get_wall_tile_organic);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_organic", "t"), &TerrainGenerator::set_wall_tile_organic);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_organic"), "set_wall_tile_organic", "get_wall_tile_organic");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_hybrid"), &TerrainGenerator::get_wall_tile_hybrid);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_hybrid", "t"), &TerrainGenerator::set_wall_tile_hybrid);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_hybrid"), "set_wall_tile_hybrid", "get_wall_tile_hybrid");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_industrial"), &TerrainGenerator::get_wall_tile_industrial);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_industrial", "t"), &TerrainGenerator::set_wall_tile_industrial);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_industrial"), "set_wall_tile_industrial", "get_wall_tile_industrial");
-    ClassDB::bind_method(D_METHOD("get_wall_tile_alien"), &TerrainGenerator::get_wall_tile_alien);
-    ClassDB::bind_method(D_METHOD("set_wall_tile_alien", "t"), &TerrainGenerator::set_wall_tile_alien);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "wall_tile_alien"), "set_wall_tile_alien", "get_wall_tile_alien");
-
-    ClassDB::bind_method(D_METHOD("get_floor_tile_organic"), &TerrainGenerator::get_floor_tile_organic);
-    ClassDB::bind_method(D_METHOD("set_floor_tile_organic", "t"), &TerrainGenerator::set_floor_tile_organic);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_organic"), "set_floor_tile_organic", "get_floor_tile_organic");
-    ClassDB::bind_method(D_METHOD("get_floor_tile_hybrid"), &TerrainGenerator::get_floor_tile_hybrid);
-    ClassDB::bind_method(D_METHOD("set_floor_tile_hybrid", "t"), &TerrainGenerator::set_floor_tile_hybrid);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_hybrid"), "set_floor_tile_hybrid", "get_floor_tile_hybrid");
-    ClassDB::bind_method(D_METHOD("get_floor_tile_industrial"), &TerrainGenerator::get_floor_tile_industrial);
-    ClassDB::bind_method(D_METHOD("set_floor_tile_industrial", "t"), &TerrainGenerator::set_floor_tile_industrial);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_industrial"), "set_floor_tile_industrial", "get_floor_tile_industrial");
-    ClassDB::bind_method(D_METHOD("get_floor_tile_alien"), &TerrainGenerator::get_floor_tile_alien);
-    ClassDB::bind_method(D_METHOD("set_floor_tile_alien", "t"), &TerrainGenerator::set_floor_tile_alien);
-    ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "floor_tile_alien"), "set_floor_tile_alien", "get_floor_tile_alien");
-
-    // tunnels
+    // rooms
     ClassDB::bind_method(D_METHOD("get_room_distance"), &TerrainGenerator::get_room_dist);
     ClassDB::bind_method(D_METHOD("set_room_distance", "d"), &TerrainGenerator::set_room_dist);
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "room_distance"), "set_room_distance", "get_room_distance");
@@ -115,10 +78,15 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_hybrid_enabled", "b"), &TerrainGenerator::set_hybrid_enabled);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hybrid_enabled"), "set_hybrid_enabled", "get_hybrid_enabled");
 
-    ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
+    // ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
 
     ClassDB::bind_method(D_METHOD("world_to_nearest_chunk_coords", "world_coords"), &TerrainGenerator::world_to_nearest_chunk_coords);
     ClassDB::bind_method(D_METHOD("chunk_to_world_coords", "chunk_coords"), &TerrainGenerator::chunk_to_world_coords);
+
+    // Accessors for use in godot
+    ClassDB::bind_method(D_METHOD("get_first_scatter_pass_points"), &TerrainGenerator::get_first_scatter_pass_points);
+    ClassDB::bind_method(D_METHOD("get_second_scatter_pass_points"), &TerrainGenerator::get_second_scatter_pass_points);
+    ClassDB::bind_method(D_METHOD("get_chunks"), &TerrainGenerator::get_chunks);
 }
 
 TerrainGenerator::TerrainGenerator()
@@ -159,16 +127,12 @@ double normalize_and_trim(double input, double trim_fac = 2.0)
 void TerrainGenerator::generate()
 {
     // Checks for valid parameters
-    // Get a proprer reference to the tile map from the stored node path - print error and return if there is no valid TileMapLayer node provided
-    Node *map_node = get_node_or_null(tile_map);
-    ERR_FAIL_NULL_MSG(map_node, "Invalid tile map node path given!");
-    TileMapLayer *map = Object::cast_to<TileMapLayer>(map_node);
-    ERR_FAIL_NULL_MSG(map_node, "Tile map path does not point to a TileMapLayer!");
     ERR_FAIL_COND_MSG(room_size_min > room_size_max, "room_size_min must be greater than room_size_max!");
     ERR_FAIL_COND_MSG(scatter_tries <= 0, "Scatter tries must be greater than 0 for the scattering algorithm to work properly.");
-    ERR_FAIL_COND_MSG(size.x <= 0 || size.y <= 0, "Map size must be >= 0 in both axes for a valid map to be generated.");
-    ERR_FAIL_COND_MSG(chunk_size.x <= 0 || chunk_size.y <= 0, "TerrainChunk size must be >= 0 in both axes for a valid map to be generated.");
+    ERR_FAIL_COND_MSG(size.x <= 0 || size.y <= 0, "Map size must be > 0 in both axes for a valid map to be generated.");
+    ERR_FAIL_COND_MSG(chunk_size.x <= 0 || chunk_size.y <= 0, "TerrainChunk size must be > 0 in both axes for a valid map to be generated.");
     ERR_FAIL_COND_MSG(room_size_max.x < room_size_min.x || room_size_max.y < room_size_min.y, "Max room size should be greater than min room size.");
+
     // Constants for determining biomes - also checks to make sure at least one biome is enabled
     int biomes_enabled{0};
     vector<Biome> biomes;
@@ -217,16 +181,15 @@ void TerrainGenerator::generate()
         chunks.push_back(v);
     }
 
-    // Clear tilemap before generating new stuff
-    map->clear();
-
     // Object scatter passes
     // Pass 1: scatter small objects
-    object_scatter(small_object_radius, scatter_tries);
+    // Passes also have a pass_idx argument which is stored in TerrainObject instances.
+    // This system easily allows more passes to be added.
+    object_scatter(small_object_radius, scatter_tries, 0);
 
     // Pass 2: scatter large objects
     // Should naturally draw over small objects, so behavior will look about normal
-    object_scatter(large_object_radius, scatter_tries);
+    object_scatter(large_object_radius, scatter_tries, 1);
 
     // Remove objects to change object density chunk to chunk
     for (int x{0}; x < chunks.size(); x++)
@@ -402,22 +365,62 @@ void TerrainGenerator::generate()
     // }
 
     // Generate chunks
-    for (int x{0}; x < chunks.size(); x++)
-    {
-        for (int y{0}; y < chunks[0].size(); y++)
-        {
-            chunks[x][y].generate(map, x, y, this);
-        }
-    }
+    // for (int x{0}; x < chunks.size(); x++)
+    // {
+    //     for (int y{0}; y < chunks[0].size(); y++)
+    //     {
+    //         chunks[x][y].generate(map, x, y, this);
+    //     }
+    // }
 
     // Create godot-readable data from generation data
+    // Initializing new blank arrays
+    first_scatter_pass_points = Array();
+    second_scatter_pass_points = Array();
+    chunks_gd = Array();
+    for (int x{0}; x < chunks.size(); x++)
+    {
+        Array arr{Array()};
+        chunks_gd.append(arr);
+        for (int y{0}; y < chunks[0].size(); y++)
+        {
+            TerrainChunk &c = chunks[x][y];
+
+            // Avoid adding anything more than a placeholder if the chunk is empty
+            if (c.is_empty())
+            {
+                arr.append(Ref<ChunkData>(memnew(ChunkData())));
+                continue;
+            }
+
+            Ref<ChunkData> data_ref = Ref<ChunkData>(memnew(ChunkData()));
+            data_ref->set_out_of_bounds(false);
+            data_ref->set_tunnel(c.is_tunnel());
+            data_ref->set_wall_sides(c.get_wall_directions());
+            data_ref->set_biome(c.get_biome_godot_compat());
+            arr.append(data_ref);
+
+            // Skip adding objects in tunnels (We don't want to block them!)]
+            if (c.is_tunnel())
+                continue;
+
+            // Add objects to correct arrays
+            for (TerrainObject o : c.get_objects())
+            {
+                if (o.get_pass_index() == 0)
+                    first_scatter_pass_points.append(o.get_pos());
+                else
+                    second_scatter_pass_points.append(o.get_pos());
+            }
+        }
+    }
 
     // Clear unneeded chunk data
     chunks.clear();
 }
 
 // used in object_scatter
-void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size)
+void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size, int pass_idx)
 {
     const int pos_x{(int)(p.x / cellsize)};
     const int pos_y{(int)(p.y / cellsize)};
@@ -426,7 +429,7 @@ void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double 
     // Add object to appropriate chunk
     // Integer division takes the floor by default
     // Note that when object positions go from doubles to truncated ints some precision is lost, but it should be good enough
-    chunks[p.x / chunk_size.x][p.y / chunk_size.y].add_object(TerrainObject(Vector2i(p.x, p.y), obj_size));
+    chunks[p.x / chunk_size.x][p.y / chunk_size.y].add_object(TerrainObject(Vector2i(p.x, p.y), obj_size, pass_idx));
 }
 
 // Add variable object sizes in the future?
@@ -435,7 +438,7 @@ void TerrainGenerator::insert_object(vector<vector<Vec2>> &grid, Vec2 p, double 
 */
 // k is number of attempts before the algorithm gives up
 // Note that the radius used will be double the object size
-void TerrainGenerator::object_scatter(double r, int k)
+void TerrainGenerator::object_scatter(double r, int k, int pass_idx)
 {
     const double cell_size{r / sqrt(2)};
     const int cells_x{(int)ceil(size.x / cell_size) + 1};
@@ -457,7 +460,7 @@ void TerrainGenerator::object_scatter(double r, int k)
     // Initial point
     vector<Vec2> active;
     Vec2 p0{(double)(main_rng.next() % size.x), (double)(main_rng.next() % size.y)};
-    insert_object(grid, p0, cell_size, r / 2.0);
+    insert_object(grid, p0, cell_size, r / 2.0, pass_idx);
     active.push_back(p0);
 
     bool success;
@@ -501,7 +504,7 @@ void TerrainGenerator::object_scatter(double r, int k)
 
             // Nothing went wrong so we add the point and break out of the for loop
             active.push_back(new_point);
-            insert_object(grid, new_point, cell_size, r / 2.0);
+            insert_object(grid, new_point, cell_size, r / 2.0, pass_idx);
             success = true;
             break;
         }
@@ -654,96 +657,6 @@ int TerrainGenerator::get_seed() const
     return seed;
 }
 
-void TerrainGenerator::set_tile_source_id(const int id)
-{
-    tile_source_id = id;
-}
-
-int TerrainGenerator::get_tile_source_id() const
-{
-    return tile_source_id;
-}
-
-void TerrainGenerator::set_floor_tile_organic(const Vector2i t)
-{
-    floor_tile_organic = t;
-}
-
-Vector2i TerrainGenerator::get_floor_tile_organic() const
-{
-    return floor_tile_organic;
-}
-
-void TerrainGenerator::set_floor_tile_hybrid(const Vector2i t)
-{
-    floor_tile_hybrid = t;
-}
-
-Vector2i TerrainGenerator::get_floor_tile_hybrid() const
-{
-    return floor_tile_hybrid;
-}
-
-void TerrainGenerator::set_floor_tile_industrial(const Vector2i t)
-{
-    floor_tile_industrial = t;
-}
-
-Vector2i TerrainGenerator::get_floor_tile_industrial() const
-{
-    return floor_tile_industrial;
-}
-
-void TerrainGenerator::set_floor_tile_alien(const Vector2i t)
-{
-    floor_tile_alien = t;
-}
-
-Vector2i TerrainGenerator::get_floor_tile_alien() const
-{
-    return floor_tile_alien;
-}
-
-void TerrainGenerator::set_wall_tile_organic(const Vector2i t)
-{
-    wall_tile_organic = t;
-}
-
-Vector2i TerrainGenerator::get_wall_tile_organic() const
-{
-    return wall_tile_organic;
-}
-
-void TerrainGenerator::set_wall_tile_hybrid(const Vector2i t)
-{
-    wall_tile_hybrid = t;
-}
-
-Vector2i TerrainGenerator::get_wall_tile_hybrid() const
-{
-    return wall_tile_hybrid;
-}
-
-void TerrainGenerator::set_wall_tile_industrial(const Vector2i t)
-{
-    wall_tile_industrial = t;
-}
-
-Vector2i TerrainGenerator::get_wall_tile_industrial() const
-{
-    return wall_tile_industrial;
-}
-
-void TerrainGenerator::set_wall_tile_alien(const Vector2i t)
-{
-    wall_tile_alien = t;
-}
-
-Vector2i TerrainGenerator::get_wall_tile_alien() const
-{
-    return wall_tile_alien;
-}
-
 void TerrainGenerator::set_biome_frequency(const double f)
 {
     biome_noise.set_frequency(f);
@@ -762,16 +675,6 @@ void TerrainGenerator::set_size(const Vector2i s)
 Vector2i TerrainGenerator::get_size() const
 {
     return size;
-}
-
-NodePath TerrainGenerator::get_tile_map() const
-{
-    return tile_map;
-}
-
-void TerrainGenerator::set_tile_map(const NodePath &new_map)
-{
-    tile_map = new_map;
 }
 
 void TerrainGenerator::set_chunk_size(const Vector2i s)
@@ -867,4 +770,17 @@ void TerrainGenerator::set_room_size_min(const Vector2i s)
 Vector2i TerrainGenerator::get_room_size_min() const
 {
     return room_size_min;
+}
+
+Array TerrainGenerator::get_first_scatter_pass_points()
+{
+    return first_scatter_pass_points;
+}
+Array TerrainGenerator::get_second_scatter_pass_points()
+{
+    return second_scatter_pass_points;
+}
+Array TerrainGenerator::get_chunks()
+{
+    return chunks_gd;
 }

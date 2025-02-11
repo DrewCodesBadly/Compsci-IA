@@ -10,33 +10,38 @@ gradient = SubResource("Gradient_7qtqk")
 width = 16
 height = 16
 
-[node name="Chunk" type="Node2D" node_paths=PackedStringArray("floor", "u_wall", "l_wall", "d_wall", "r_wall")]
+[node name="Chunk" type="Node2D" node_paths=PackedStringArray("floor_sprite", "u_wall", "l_wall", "d_wall", "r_wall")]
 script = ExtResource("1_4mqek")
-floor = NodePath("Floor")
+floor_sprite = NodePath("Floor")
 u_wall = NodePath("UpperWall")
 l_wall = NodePath("LeftWall")
 d_wall = NodePath("LowerWall")
 r_wall = NodePath("RightWall")
 
 [node name="Floor" type="Sprite2D" parent="."]
+self_modulate = Color(0.25, 0.25, 0.25, 1)
 texture = SubResource("GradientTexture2D_ljgc0")
 
 [node name="UpperWall" type="Line2D" parent="."]
+visible = false
 points = PackedVector2Array(-8, -7, 8, -7)
 width = 2.0
 default_color = Color(0, 0, 0, 1)
 
 [node name="LowerWall" type="Line2D" parent="."]
+visible = false
 points = PackedVector2Array(-8, 7, 8, 7)
 width = 2.0
 default_color = Color(0, 0, 0, 1)
 
 [node name="LeftWall" type="Line2D" parent="."]
+visible = false
 points = PackedVector2Array(-7, -8, -7, 8)
 width = 2.0
 default_color = Color(0, 0, 0, 1)
 
 [node name="RightWall" type="Line2D" parent="."]
+visible = false
 points = PackedVector2Array(7, -8, 7, 8)
 width = 2.0
 default_color = Color(0, 0, 0, 1)

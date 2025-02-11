@@ -8,10 +8,12 @@ class TerrainObject
 private:
     godot::Vector2i pos;
     double size;
+    int pass_index;
 
 public:
-    TerrainObject(godot::Vector2i pos, double size);
+    TerrainObject(godot::Vector2i pos, double size, int pass_idx);
     ~TerrainObject();
     godot::Vector2i get_pos() const;
+    int get_pass_index() const;
 };
 #endif

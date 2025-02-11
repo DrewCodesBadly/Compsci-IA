@@ -6,6 +6,7 @@
 #include <godot_cpp/classes/tile_map_layer.hpp>
 #include <terrain_generator.h>
 #include "terrain_rng.h" // seems to already be included but just in case :3
+#include "chunk_data.h"
 
 using namespace godot;
 
@@ -38,6 +39,8 @@ namespace godot
         bool is_empty() const;
         enum Biome get_biome() const;
         int get_biome_godot_compat() const;
+        std::vector<TerrainObject> get_objects() const;
+        Array get_wall_directions() const;
     };
 }
 
