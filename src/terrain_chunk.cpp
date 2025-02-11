@@ -137,3 +137,8 @@ bool TerrainChunk::is_tunnel() const
 {
     return tunnel;
 }
+
+void TerrainChunk::set_non_empty()
+{
+    empty = false;
+}
