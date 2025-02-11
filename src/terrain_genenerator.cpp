@@ -241,7 +241,7 @@ void TerrainGenerator::generate()
     }
 
     // Generate room positions and shapes, settings chunk wall positions
-    Vector2i max_min_room_diff{room_size_max - room_size_min};
+    Vector2i max_min_room_diff{room_size_max - room_size_min + Vector2i(1, 1)};
     vector<Vec2> room_points = point_scatter(room_dist, scatter_tries);
     for (Vec2 p : room_points)
     {
@@ -252,26 +252,25 @@ void TerrainGenerator::generate()
         if (top_left.y < 0)
             top_left.y = 0;
         Vector2i bottom_right{top_left + room_size};
-        if (bottom_right.x < chunks.size() - 1)
-            bottom_right.x = chunks.size() - 1;
-        if (bottom_right.y < chunks[0].size() - 1)
-            bottom_right.y = chunks[0].size() - 1;
-        Vector2i current_chunk{top_left};
+        if (bottom_right.x > chunks.size())
+            bottom_right.x = chunks.size();
+        if (bottom_right.y > chunks[0].size())
+            bottom_right.y = chunks[0].size();
 
         // Iterate through all chunks in the room, creating walls and flagging them as not empty (actually part of the map)
-        for (current_chunk.x; current_chunk.x <= bottom_right.x; current_chunk.x++)
+        for (int x{top_left.x}; x < bottom_right.x; x++)
         {
-            for (current_chunk.y; current_chunk.y <= bottom_right.y; current_chunk.y++)
+            for (int y{top_left.y}; y < bottom_right.y; y++)
             {
-                TerrainChunk c = chunks[current_chunk.x][current_chunk.y];
+                TerrainChunk &c = chunks[x][y];
                 c.set_non_empty();
-                if (current_chunk.x == top_left.x)
+                if (x == top_left.x)
                     c.add_wall(Vector2i(-1, 0));
-                else if (current_chunk.x == bottom_right.x)
+                if (x == bottom_right.x - 1)
                     c.add_wall(Vector2i(1, 0));
-                if (current_chunk.y == top_left.y)
+                if (y == top_left.y)
                     c.add_wall(Vector2i(0, -1));
-                else if (current_chunk.y == bottom_right.y)
+                if (y == bottom_right.y - 1)
                     c.add_wall(Vector2i(0, 1));
             }
         }
@@ -411,7 +410,10 @@ void TerrainGenerator::generate()
         }
     }
 
-    // TODO: Compile together godot-typed arrays of objects from chunk data
+    // Create godot-readable data from generation data
+
+    // Clear unneeded chunk data
+    chunks.clear();
 }
 
 // used in object_scatter

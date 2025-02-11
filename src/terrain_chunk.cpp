@@ -7,8 +7,11 @@ void TerrainChunk::_bind_methods()
 }
 
 TerrainChunk::TerrainChunk(enum Biome b)
-    : biome{b}, tunnel{false}, empty{true}, wall_directions{Array()}
 {
+    biome = b;
+    tunnel = false;
+    empty = true;
+    wall_directions = Array();
 }
 
 TerrainChunk::~TerrainChunk()
@@ -24,6 +27,7 @@ void TerrainChunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *g
 {
     if (empty)
         return;
+    // ERR_FAIL_MSG("non-empty chunk");
     int source_id = generator->get_tile_source_id();
 
     // Get appropriate tiles for the biome
@@ -76,9 +80,9 @@ void TerrainChunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *g
 
         Vector2i inc;
         inc = (dir.x == 0) ? Vector2i(1, 0) : Vector2i(0, 1);
-        for (pos; pos.x < chunk_size.x - 1 && pos.y < chunk_size.y - 1; pos += inc)
+        for (pos; pos.x < chunk_size.x && pos.y < chunk_size.y; pos += inc)
         {
-            map->set_cell(top_left_cell + pos, source_id, floor_tile);
+            map->set_cell(top_left_cell + pos, source_id, wall_tile);
         }
     }
 

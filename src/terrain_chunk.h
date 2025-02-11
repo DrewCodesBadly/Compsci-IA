@@ -11,13 +11,13 @@ using namespace godot;
 
 namespace godot
 {
-    class TerrainChunk : public Resource
+    class TerrainChunk
     {
-        GDCLASS(TerrainChunk, Resource);
+        // GDCLASS(TerrainChunk);
 
     private:
         Array wall_directions;
-        bool empty = true;
+        bool empty;
         bool tunnel;
         std::vector<TerrainObject> objects;
         enum Biome biome;
