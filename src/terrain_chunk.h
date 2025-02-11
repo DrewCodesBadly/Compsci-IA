@@ -21,10 +21,6 @@ namespace godot
         bool tunnel;
         std::vector<TerrainObject> objects;
         enum Biome biome;
-        bool exit_north;
-        bool exit_south;
-        bool exit_east;
-        bool exit_west;
 
     protected:
         static void _bind_methods();

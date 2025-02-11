@@ -7,7 +7,7 @@ void TerrainChunk::_bind_methods()
 }
 
 TerrainChunk::TerrainChunk(enum Biome b)
-    : biome{b}, tunnel{false}, exit_east{false}, exit_west{false}, exit_north{false}, exit_south{false}, empty{true}, wall_directions{Array()}
+    : biome{b}, tunnel{false}, empty{true}, wall_directions{Array()}
 {
 }
 
@@ -60,63 +60,41 @@ void TerrainChunk::generate(TileMapLayer *map, int x, int y, TerrainGenerator *g
             map->set_cell(top_left_cell + Vector2i(local_x, local_y), source_id, floor_tile);
         }
     }
-
-    // Generate as a tunnel chunk
-    if (tunnel)
+    // Try each side individually - draws lines at the edges (debug walls)
+    for (int i{0}; i < wall_directions.size(); i++)
     {
-        // Try each side individually - draws lines at the edges (debug tunnel)
-        if (!exit_north)
+        Vector2i pos{Vector2i(0, 0)};
+        Vector2i dir{wall_directions[i]};
+        if (dir.x == 1)
         {
-            for (Vector2i v{top_left_cell}; v.x < top_left_cell.x + chunk_size.x; v.x++)
-            {
-
-                map->set_cell(v, source_id, wall_tile);
-            }
+            pos = Vector2i(chunk_size.x - 1, 0);
         }
-        if (!exit_south)
+        else if (dir.y == 1)
         {
-            for (Vector2i v{top_left_cell + Vector2i(0, chunk_size.y - 1)}; v.x < top_left_cell.x + chunk_size.x; v.x++)
-            {
-
-                map->set_cell(v, source_id, wall_tile);
-            }
-        }
-        if (!exit_west)
-        {
-            for (Vector2i v{top_left_cell}; v.y < top_left_cell.y + chunk_size.y; v.y++)
-            {
-
-                map->set_cell(v, source_id, wall_tile);
-            }
-        }
-        if (!exit_east)
-        {
-            for (Vector2i v{top_left_cell + Vector2i(chunk_size.x - 1, 0)}; v.y < top_left_cell.y + chunk_size.y; v.y++)
-            {
-
-                map->set_cell(v, source_id, wall_tile);
-            }
+            pos = Vector2i(0, chunk_size.y - 1);
         }
 
-        // For testing purposes, make the chunk all floor tiles - not used anymore (hopefully)
-        // for (int local_x{0}; local_x < chunk_size.x; local_x += 2)
-        // {
-        //     for (int local_y{0}; local_y < chunk_size.y; local_y += 2)
-        //     {
-        //         map->set_cell(top_left_cell + Vector2i(local_x, local_y), source_id, wall_tile);
-        //     }
-        // }
+        Vector2i inc;
+        inc = (dir.x == 0) ? Vector2i(1, 0) : Vector2i(0, 1);
+        for (pos; pos.x < chunk_size.x - 1 && pos.y < chunk_size.y - 1; pos += inc)
+        {
+            map->set_cell(top_left_cell + pos, source_id, floor_tile);
+        }
     }
 
-    // Standard generation
-    else
+    // For testing purposes, make the chunk all floor tiles - not used anymore (hopefully)
+    // for (int local_x{0}; local_x < chunk_size.x; local_x += 2)
+    // {
+    //     for (int local_y{0}; local_y < chunk_size.y; local_y += 2)
+    //     {
+    //         map->set_cell(top_left_cell + Vector2i(local_x, local_y), source_id, wall_tile);
+    //     }
+    // }
+    // Generate each object in this chunk's object list
+    // TODO: Proper object generation
+    for (TerrainObject o : objects)
     {
-        // Generate each object in this chunk's object list
-        // TODO: Proper object generation
-        for (TerrainObject o : objects)
-        {
-            map->set_cell(o.get_pos(), source_id, wall_tile);
-        }
+        map->set_cell(o.get_pos(), source_id, wall_tile);
     }
 }
 

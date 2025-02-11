@@ -117,8 +117,8 @@ void TerrainGenerator::_bind_methods()
 
     ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
 
-    ClassDB::bind_method(D_METHOD("world_to_nearest_chunk_coords", "world_coords"), TerrainGenerator::world_to_nearest_chunk_coords);
-    ClassDB::bind_method(D_METHOD("chunk_to_world_coords", "chunk_coords"), TerrainGenerator::chunk_to_world_coords);
+    ClassDB::bind_method(D_METHOD("world_to_nearest_chunk_coords", "world_coords"), &TerrainGenerator::world_to_nearest_chunk_coords);
+    ClassDB::bind_method(D_METHOD("chunk_to_world_coords", "chunk_coords"), &TerrainGenerator::chunk_to_world_coords);
 }
 
 TerrainGenerator::TerrainGenerator()
@@ -403,13 +403,13 @@ void TerrainGenerator::generate()
     // }
 
     // Generate chunks
-    // for (int x{0}; x < chunks.size(); x++)
-    // {
-    //     for (int y{0}; y < chunks[0].size(); y++)
-    //     {
-    //         chunks[x][y].generate(map, x, y, this);
-    //     }
-    // }
+    for (int x{0}; x < chunks.size(); x++)
+    {
+        for (int y{0}; y < chunks[0].size(); y++)
+        {
+            chunks[x][y].generate(map, x, y, this);
+        }
+    }
 
     // TODO: Compile together godot-typed arrays of objects from chunk data
 }
