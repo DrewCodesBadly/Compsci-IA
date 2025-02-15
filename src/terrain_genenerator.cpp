@@ -3,6 +3,7 @@
 #include <godot_cpp/core/class_db.hpp>
 #include <vector>
 #include <cmath>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 #include "terrain_chunk.h" // makes the vscode error shut up, scons handles the build fine tho
 
@@ -78,6 +79,14 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_hybrid_enabled", "b"), &TerrainGenerator::set_hybrid_enabled);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hybrid_enabled"), "set_hybrid_enabled", "get_hybrid_enabled");
 
+    ClassDB::bind_method(D_METHOD("get_min_tunnels"), &TerrainGenerator::get_min_tunnels);
+    ClassDB::bind_method(D_METHOD("set_min_tunnels", "t"), &TerrainGenerator::set_min_tunnels);
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "min_tunnels"), "set_min_tunnels", "get_min_tunnels");
+
+    ClassDB::bind_method(D_METHOD("get_max_tunnels"), &TerrainGenerator::get_max_tunnels);
+    ClassDB::bind_method(D_METHOD("set_max_tunnels", "t"), &TerrainGenerator::set_max_tunnels);
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "max_tunnels"), "set_max_tunnels", "get_max_tunnels");
+
     // ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
 
     ClassDB::bind_method(D_METHOD("world_to_nearest_chunk_coords", "world_coords"), &TerrainGenerator::world_to_nearest_chunk_coords);
@@ -128,6 +137,7 @@ struct RoomBounds
 {
     Vector2i top_left;
     Vector2i bottom_right;
+    bool connected = false;
 };
 
 // Entrypoint for map generation
@@ -219,7 +229,6 @@ void TerrainGenerator::generate()
     for (int x{0}; x < rooms_points_grid.size(); x++)
     {
         vector<RoomBounds> v;
-        rooms_grid.push_back(v);
         for (int y{0}; y < rooms_points_grid[0].size(); y++)
         {
             Vec2 p{rooms_points_grid[x][y]};
@@ -263,6 +272,7 @@ void TerrainGenerator::generate()
             // Push a new RoomBounds (could be replaced w/nullptr and references, I think storing structs is faster though...)
             v.push_back(RoomBounds{top_left, bottom_right});
         }
+        rooms_grid.push_back(v);
     }
 
     // Generate tunnels connecting rooms
@@ -281,13 +291,13 @@ void TerrainGenerator::generate()
             vector<Vector2i> directions{{Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
                                          Vector2i(-1, 0), /*Vector2i(0, 0),*/ Vector2i(1, 0),
                                          Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)}};
-            int tunnels{min_tunnels + (main_rng.next() % (max_tunnels - min_tunnels))};
+            unsigned int tunnels{min_tunnels + (main_rng.next() % (max_tunnels - min_tunnels + 1))};
 
             // Check different directions for adjacent rooms to connect to
             while (tunnels > 0 && directions.size() > 0)
             {
                 // Randomly select a direction and try it
-                unsigned int idx{main_rng.next() % directions.size()};
+                long unsigned int idx{main_rng.next() % directions.size()};
                 Vector2i dir{directions[idx]};
                 directions.erase(directions.begin() + idx);
 
@@ -300,7 +310,98 @@ void TerrainGenerator::generate()
                     continue;
 
                 // Randomly snake from this room's center (roughly) point to the next room, creating a tunnel
-                Vector2i start{(r.top_left + r.bottom_right) / 2};
+                Vector2i pos{(r.top_left + r.bottom_right) / 2};
+                Vector2i target_pos{(connecting_to.top_left + connecting_to.bottom_right) / 2};
+                Vector2i tunnel_dir{target_pos - pos};
+                Vector2i limits;
+                if (tunnel_dir.x > 0)
+                {
+                    tunnel_dir.x = 1;
+                    limits.x = connecting_to.top_left.x;
+                }
+                else
+                {
+                    tunnel_dir.x = -1;
+                    limits.x = connecting_to.bottom_right.x;
+                }
+                if (tunnel_dir.y > 0)
+                {
+                    tunnel_dir.y = 1;
+                    limits.y = connecting_to.top_left.y;
+                }
+                else
+                {
+                    tunnel_dir.y = -1;
+                    limits.y = connecting_to.bottom_right.y;
+                }
+                bool exited_room{false};
+                bool finished{false};
+                while (pos.x != limits.x && pos.y != limits.y)
+                {
+                    // Shouldn't be possible to get out of bounds since we target a room which is in bounds
+                    if (main_rng.next() % 2 == 0)
+                    {
+                        pos.x += tunnel_dir.x;
+                    }
+                    else
+                    {
+                        pos.y += tunnel_dir.y;
+                    }
+
+                    TerrainChunk &new_chunk{chunks[pos.x][pos.y]};
+                    if (!new_chunk.is_empty() && exited_room)
+                    {
+                        // We've landed in the next room (if rooms are touching this could be an issue...)
+                        finished = true;
+                        break;
+                    }
+                    else if (new_chunk.is_tunnel())
+                    {
+                        finished = true;
+                        break;
+                    }
+                    else
+                    {
+                        if (new_chunk.is_empty() && !exited_room)
+                        {
+                            exited_room = true;
+                        }
+                        new_chunk.set_non_empty();
+                    }
+                }
+                // Finish the tunnel by going straight toward the room if needed
+                if (!finished)
+                {
+                    if (pos.x != limits.x)
+                    {
+                        while (pos.x != limits.x)
+                        {
+                            pos.x += tunnel_dir.x;
+                            TerrainChunk &new_chunk{chunks[pos.x][pos.y]};
+                            if (!new_chunk.is_empty() && exited_room)
+                                break;
+                            else if (new_chunk.is_empty() && !exited_room)
+                                exited_room = true;
+                            else if (new_chunk.is_tunnel())
+                                break;
+                            new_chunk.set_non_empty();
+                            new_chunk.set_tunnel();
+                        }
+                    }
+                    else if (pos.y != limits.y)
+                    {
+                        while (pos.y != limits.y)
+                        {
+                            pos.y += tunnel_dir.y;
+                            TerrainChunk &new_chunk{chunks[pos.x][pos.y]};
+                            if (!new_chunk.is_empty() && exited_room)
+                            {
+                                break;
+                            }
+                            new_chunk.set_non_empty();
+                        }
+                    }
+                }
 
                 tunnels--;
             }
@@ -718,12 +819,14 @@ Array TerrainGenerator::get_chunks()
 
 void TerrainGenerator::set_min_tunnels(const int t)
 {
-    min_tunnels = t;
+    if (t >= 0)
+        min_tunnels = t;
 }
 
 void TerrainGenerator::set_max_tunnels(const int t)
 {
-    max_tunnels = t;
+    if (t >= 0)
+        max_tunnels = t;
 }
 
 int TerrainGenerator::get_min_tunnels() const

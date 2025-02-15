@@ -147,6 +147,11 @@ void TerrainChunk::set_non_empty()
     empty = false;
 }
 
+void TerrainChunk::set_tunnel()
+{
+    tunnel = true;
+}
+
 std::vector<TerrainObject> TerrainChunk::get_objects() const
 {
     return objects;

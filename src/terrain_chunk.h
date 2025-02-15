@@ -31,6 +31,7 @@ namespace godot
         ~TerrainChunk();
         void add_object(TerrainObject o);
         void set_non_empty();
+        void set_tunnel();
         void generate(TileMapLayer *map, int x, int y, TerrainGenerator *generator);
         void remove_random_objects(int num, TerrainRNG main_rng);
         // Expected that enter and exit are cardinal directions e.g. (1, 0)

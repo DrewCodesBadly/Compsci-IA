@@ -39,7 +39,7 @@ namespace godot
 		Vector2i room_size_max;
 		Vector2i room_size_min;
 		int min_tunnels{1};
-		int max_tunnels{4};
+		int max_tunnels{2};
 
 		vector<vector<TerrainChunk>> chunks;
 

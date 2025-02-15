@@ -10,7 +10,7 @@ poi_2_container = NodePath("SecondScatter")
 chunk_container = NodePath("Chunks")
 
 [node name="TerrainGenerator" type="TerrainGenerator" parent="."]
-seed = 1097
+seed = 1452
 size = Vector2i(256, 256)
 chunk_size = Vector2i(16, 16)
 biome_frequency = 0.75
@@ -18,7 +18,7 @@ density_frequency = 0.5
 small_object_radius = 15.0
 large_object_radius = 30.0
 max_removed_objects = 2
-room_distance = 80.0
+room_distance = 96.0
 room_size_max = Vector2i(4, 4)
 room_size_min = Vector2i(2, 2)
 alien_enabled = true

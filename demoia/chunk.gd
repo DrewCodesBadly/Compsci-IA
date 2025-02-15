@@ -28,26 +28,19 @@ func init_from_chunk(d: ChunkData) -> void:
 		else:
 			u_wall.visible = true
 	
-	print(d.biome)
-	#match d.biome:
-		#0: #Biome::ALIEN
-			#floor_sprite.self_modulate = Color(1, 1, 1)
-			#floor_sprite.queue_redraw()
-		#1: #Biome::HYBRID
-			#floor_sprite.self_modulate = Color(0.75, 0.75, 0.75)
-			#floor_sprite.queue_redraw()
-		#2: #Biome::INDUSTRIAL
-			#floor_sprite.self_modulate = Color(0.5, 0.5, 0.5)
-			#floor_sprite.queue_redraw()
-		#3: #Biome::ORGANIC
-			#floor_sprite.self_modulate = Color(0.25, 0.25, 0.25)
-			#floor_sprite.queue_redraw()
-		#_:
-			#push_warning("unknown biome index")
-	
-	if d.biome > 0:
-		floor_sprite.self_modulate = Color(0.25, 0.25, 0.25)
-		floor_sprite.queue_redraw()
-	
-	
-	floor_sprite.self_modulate = Color(50, 50, 50)
+	#print(d.biome)
+	match d.biome:
+		0: #Biome::ALIEN
+			floor_sprite.self_modulate = Color(1, 1, 1)
+			floor_sprite.queue_redraw()
+		1: #Biome::HYBRID
+			floor_sprite.self_modulate = Color(0.75, 0.75, 0.75)
+			floor_sprite.queue_redraw()
+		2: #Biome::INDUSTRIAL
+			floor_sprite.self_modulate = Color(0.5, 0.5, 0.5)
+			floor_sprite.queue_redraw()
+		3: #Biome::ORGANIC
+			floor_sprite.self_modulate = Color(0.25, 0.25, 0.25)
+			floor_sprite.queue_redraw()
+		_:
+			push_warning("unknown biome index")
