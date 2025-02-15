@@ -123,6 +123,13 @@ double normalize_and_trim(double input, double trim_fac = 2.0)
     return val;
 }
 
+// Used for room/tunnel generation
+struct RoomBounds
+{
+    Vector2i top_left;
+    Vector2i bottom_right;
+};
+
 // Entrypoint for map generation
 void TerrainGenerator::generate()
 {
@@ -205,173 +212,100 @@ void TerrainGenerator::generate()
 
     // Generate room positions and shapes, settings chunk wall positions
     Vector2i max_min_room_diff{room_size_max - room_size_min + Vector2i(1, 1)};
-    vector<Vec2> room_points = point_scatter(room_dist, scatter_tries);
-    for (Vec2 p : room_points)
-    {
-        Vector2i room_size{Vector2i((main_rng.next() % max_min_room_diff.x) + room_size_min.x, (main_rng.next() % max_min_room_diff.y) + room_size_min.y)};
-        Vector2i top_left{world_to_nearest_chunk_coords(Vector2(p.x, p.y)) - (room_size / 2)}; // integer division is fine here
-        if (top_left.x < 0)
-            top_left.x = 0;
-        if (top_left.y < 0)
-            top_left.y = 0;
-        Vector2i bottom_right{top_left + room_size};
-        if (bottom_right.x > chunks.size())
-            bottom_right.x = chunks.size();
-        if (bottom_right.y > chunks[0].size())
-            bottom_right.y = chunks[0].size();
+    vector<vector<Vec2>> rooms_points_grid = point_scatter(room_dist, scatter_tries);
 
-        // Iterate through all chunks in the room, creating walls and flagging them as not empty (actually part of the map)
-        for (int x{top_left.x}; x < bottom_right.x; x++)
+    // Generate room chunks and create a new 2D array to store room structs instead
+    vector<vector<RoomBounds>> rooms_grid;
+    for (int x{0}; x < rooms_points_grid.size(); x++)
+    {
+        vector<RoomBounds> v;
+        rooms_grid.push_back(v);
+        for (int y{0}; y < rooms_points_grid[0].size(); y++)
         {
-            for (int y{top_left.y}; y < bottom_right.y; y++)
+            Vec2 p{rooms_points_grid[x][y]};
+            // Ignore empty cells
+            if (p.x == -1.0)
             {
-                TerrainChunk &c = chunks[x][y];
-                c.set_non_empty();
-                if (x == top_left.x)
-                    c.add_wall(Vector2i(-1, 0));
-                if (x == bottom_right.x - 1)
-                    c.add_wall(Vector2i(1, 0));
-                if (y == top_left.y)
-                    c.add_wall(Vector2i(0, -1));
-                if (y == bottom_right.y - 1)
-                    c.add_wall(Vector2i(0, 1));
+                v.push_back(RoomBounds{Vector2i(-1, -1), Vector2i(-1, -1)});
+                continue;
             }
+
+            Vector2i room_size{Vector2i((main_rng.next() % max_min_room_diff.x) + room_size_min.x, (main_rng.next() % max_min_room_diff.y) + room_size_min.y)};
+            Vector2i top_left{world_to_nearest_chunk_coords(Vector2(p.x, p.y)) - (room_size / 2)}; // integer division is fine here
+            if (top_left.x < 0)
+                top_left.x = 0;
+            if (top_left.y < 0)
+                top_left.y = 0;
+            Vector2i bottom_right{top_left + room_size};
+            if (bottom_right.x > chunks.size())
+                bottom_right.x = chunks.size();
+            if (bottom_right.y > chunks[0].size())
+                bottom_right.y = chunks[0].size();
+
+            // Iterate through all chunks in the room, creating walls and flagging them as not empty (actually part of the map)
+            for (int x{top_left.x}; x < bottom_right.x; x++)
+            {
+                for (int y{top_left.y}; y < bottom_right.y; y++)
+                {
+                    TerrainChunk &c = chunks[x][y];
+                    c.set_non_empty();
+                    if (x == top_left.x)
+                        c.add_wall(Vector2i(-1, 0));
+                    if (x == bottom_right.x - 1)
+                        c.add_wall(Vector2i(1, 0));
+                    if (y == top_left.y)
+                        c.add_wall(Vector2i(0, -1));
+                    if (y == bottom_right.y - 1)
+                        c.add_wall(Vector2i(0, 1));
+                }
+            }
+
+            // Push a new RoomBounds (could be replaced w/nullptr and references, I think storing structs is faster though...)
+            v.push_back(RoomBounds{top_left, bottom_right});
         }
     }
 
     // Generate tunnels connecting rooms
+    for (int x{0}; x < rooms_grid.size(); x++)
+    {
+        for (int y{0}; y < rooms_grid[0].size(); y++)
+        {
+            RoomBounds r{rooms_grid[x][y]};
+            // Ignore empty rooms
+            if (r.top_left.x == -1.0)
+            {
+                continue;
+            }
 
-    // OLD TUNNEL ALGORITHM
-    // vector<Vec2> points = point_scatter(room_dist, scatter_tries);
-    // // Create a tunnel for each point
-    // for (Vec2 p : points)
-    // {
-    //     // Find the tunnel's end point - attempts scatter_tries times to find a valid, inbounds end point
-    //     // If no point is found the tunnel will simply not generate.
-    //     Vector2i end_chunk_pos;
-    //     bool success{false};
-    //     for (int i{0}; i < scatter_tries; i++)
-    //     {
-    //         double tunnel_angle{(double)main_rng.next() / UINT_MAX * 2 * PI};
-    //         double tunnel_len{(double)main_rng.next() / UINT_MAX * (room_size_max - room_size_min) + room_size_min};
-    //         end_chunk_pos = Vector2i((int)((p.x + (tunnel_len * cos(tunnel_angle))) / chunk_size.x), (int)((p.y + (tunnel_len * sin(tunnel_angle))) / chunk_size.y));
-    //         if (end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size())
-    //         {
-    //             continue;
-    //         }
-    //         else
-    //         {
-    //             success = true;
-    //             break;
-    //         }
-    //     }
-    //     if (!success)
-    //     {
-    //         continue;
-    //     }
+            // Pick the (max) number of tunnels this room can have
+            vector<Vector2i> directions{{Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
+                                         Vector2i(-1, 0), /*Vector2i(0, 0),*/ Vector2i(1, 0),
+                                         Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)}};
+            int tunnels{min_tunnels + (main_rng.next() % (max_tunnels - min_tunnels))};
 
-    //     // Create a chain of chunks in a tunnel formation
-    //     Vector2i start_chunk_pos{Vector2i((int)(p.x / chunk_size.x), (int)(p.y / chunk_size.y))};
-    //     // ERR_FAIL_COND_MSG(start_chunk_pos.x < 0 || start_chunk_pos.x >= chunks.size() || start_chunk_pos.y < 0 || start_chunk_pos.y >= chunks[0].size(), "oob start chunk");
-    //     // ERR_FAIL_COND_MSG(end_chunk_pos.x < 0 || end_chunk_pos.x >= chunks.size() || end_chunk_pos.y < 0 || end_chunk_pos.y >= chunks[0].size(), "oob end chunk");
-    //     Vector2i distance_to_end{end_chunk_pos - start_chunk_pos};
-    //     // (x > 0) - (x < 0) returns 1 if x is positive and -1 if x is negative. https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
-    //     // Just subtraction using booleans which are auto casted to 1 or 0, not as scary as it looks
-    //     Vector2i direction{Vector2i((distance_to_end.x > 0) - (distance_to_end.x < 0), (distance_to_end.y > 0) - (distance_to_end.y < 0))};
-    //     distance_to_end.x = abs(distance_to_end.x);
-    //     distance_to_end.y = abs(distance_to_end.y);
+            // Check different directions for adjacent rooms to connect to
+            while (tunnels > 0 && directions.size() > 0)
+            {
+                // Randomly select a direction and try it
+                unsigned int idx{main_rng.next() % directions.size()};
+                Vector2i dir{directions[idx]};
+                directions.erase(directions.begin() + idx);
 
-    //     // Declaring variables to be used within the following while loop
-    //     Vector2i current_chunk_pos{start_chunk_pos};
-    //     // Set the entry direction into the tunnel to the opposite y or x direction at random
-    //     bool rand_entry{main_rng.next() % 2 == 0};
-    //     Vector2i entry_direction;
-    //     if (rand_entry)
-    //         entry_direction = Vector2i(-direction.x, 0);
-    //     else
-    //         entry_direction = Vector2i(0, -direction.y);
-    //     Vector2i next_chunk_pos;
+                // If there is no room to connect to, pass and keep going
+                Vector2i new_point{x + dir.x, y + dir.y};
+                if (new_point.x < 0 || new_point.y < 0 || new_point.x > rooms_grid.size() || new_point.y > rooms_grid[0].size())
+                    continue;
+                RoomBounds connecting_to{rooms_grid[new_point.x][new_point.y]};
+                if (connecting_to.top_left.x == -1)
+                    continue;
 
-    //     // prints info about each tunnel
-    //     // godot::_err_print_error(FUNCTION_STR, __FILE__, __LINE__, "Method/function failed.",
-    //     //                         "tunnel data, start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
+                // Randomly snake from this room's center (roughly) point to the next room, creating a tunnel
+                Vector2i start{(r.top_left + r.bottom_right) / 2};
 
-    //     // Randomly pick a direction to snake towards the end point, until close enough that a straight line must be taken to reach the end
-    //     while (distance_to_end.x > 0 && distance_to_end.y > 0)
-    //     {
-    //         // random 1 in 2
-    //         bool rand_dir{main_rng.next() % 2 == 0};
-    //         // move in x dir
-    //         if (rand_dir)
-    //         {
-    //             next_chunk_pos = current_chunk_pos + Vector2i(direction.x, 0);
-    //             distance_to_end.x--;
-    //         }
-    //         // move in y dir
-    //         else
-    //         {
-    //             next_chunk_pos = current_chunk_pos + Vector2i(0, direction.y);
-    //             distance_to_end.y--;
-    //         }
-
-    //         // ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
-    //         //                   "oob chunk (1) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
-    //         chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(entry_direction);
-    //         chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(next_chunk_pos - current_chunk_pos);
-    //         // prints data about exits added to each chunk during this loop
-    //         // godot::_err_print_error(FUNCTION_STR, __FILE__, __LINE__, "Method/function failed.",
-    //         //                         "added entry dir: " + entry_direction + " added other exit: " + (next_chunk_pos - current_chunk_pos) +
-    //         //                             ", tunnel data, start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction + " @ " + current_chunk_pos);
-    //         entry_direction = current_chunk_pos - next_chunk_pos;
-    //         current_chunk_pos = next_chunk_pos;
-    //     }
-    //     // Finish the last chunk in the loop
-    //     chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(entry_direction);
-    //     chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(distance_to_end.x > 0 ? Vector2i(direction.x, 0) : Vector2i(0, direction.y));
-
-    //     // Close any remaining distance (hardcoding this is just easier, less calculations needed)
-    //     while (distance_to_end.x > 1)
-    //     {
-    //         current_chunk_pos = current_chunk_pos + Vector2i(direction.x, 0);
-    //         // ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
-    //         //                   "oob chunk (2) @ " + current_chunk_pos + ", start: " + start_chunk_pos + ", end: " + end_chunk_pos + ", dir: " + direction);
-    //         chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(-direction.x, 0));
-    //         chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(direction.x, 0));
-    //         distance_to_end.x--;
-    //     }
-    //     while (distance_to_end.y > 1)
-    //     {
-    //         current_chunk_pos = current_chunk_pos + Vector2i(0, direction.y);
-    //         // ERR_FAIL_COND_MSG(current_chunk_pos.x < 0 || current_chunk_pos.x >= chunks.size() || current_chunk_pos.y < 0 || current_chunk_pos.y >= chunks[0].size(),
-    //         //                   "oob chunk (3)" + current_chunk_pos + " start: " + start_chunk_pos + " end: " + end_chunk_pos);
-    //         chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(0, -direction.y));
-    //         chunks[current_chunk_pos.x][current_chunk_pos.y].add_exit(Vector2i(0, direction.y));
-    //         distance_to_end.y--;
-    //     }
-
-    //     // Finally, set the last chunk
-    //     chunks[end_chunk_pos.x][end_chunk_pos.y].add_exit(current_chunk_pos - end_chunk_pos);
-    //     bool rand_exit{main_rng.next() % 2 == 0};
-    //     // exit x
-    //     if (rand_exit)
-    //     {
-    //         chunks[end_chunk_pos.x][end_chunk_pos.y].add_exit(Vector2i(direction.x, 0));
-    //     }
-    //     // exit y
-    //     else
-    //     {
-    //         chunks[end_chunk_pos.x][end_chunk_pos.y].add_exit(Vector2i(0, direction.y));
-    //     }
-    // }
-
-    // Generate chunks
-    // for (int x{0}; x < chunks.size(); x++)
-    // {
-    //     for (int y{0}; y < chunks[0].size(); y++)
-    //     {
-    //         chunks[x][y].generate(map, x, y, this);
-    //     }
-    // }
+                tunnels--;
+            }
+        }
+    }
 
     // Create godot-readable data from generation data
     // Initializing new blank arrays
@@ -517,9 +451,9 @@ void TerrainGenerator::object_scatter(double r, int k, int pass_idx)
     }
 }
 
-// Similar to object_scatter but instead returns a list of points
+// Similar to object_scatter but instead writes to a list of points and returns the grid
 // Basically copied and pasted, somewhat inefficient but whatever
-vector<Vec2> TerrainGenerator::point_scatter(double r, int k)
+vector<vector<Vec2>> TerrainGenerator::point_scatter(double r, int k)
 {
     const double cell_size{r / sqrt(2)};
     const int cells_x{(int)ceil(size.x / cell_size) + 1};
@@ -540,9 +474,7 @@ vector<Vec2> TerrainGenerator::point_scatter(double r, int k)
 
     // Initial point
     vector<Vec2> active;
-    vector<Vec2> points;
     Vec2 p0{(double)(main_rng.next() % size.x), (double)(main_rng.next() % size.y)};
-    points.push_back(p0);
     grid[(int)p0.x / cell_size][(int)p0.y / cell_size] = p0;
     active.push_back(p0);
 
@@ -587,7 +519,6 @@ vector<Vec2> TerrainGenerator::point_scatter(double r, int k)
 
             // Nothing went wrong so we add the point and break out of the for loop
             active.push_back(new_point);
-            points.push_back(new_point);
             grid[(int)new_point.x / cell_size][(int)new_point.y / cell_size] = new_point;
             success = true;
             break;
@@ -600,7 +531,7 @@ vector<Vec2> TerrainGenerator::point_scatter(double r, int k)
         }
     }
 
-    return points;
+    return grid;
 }
 
 // Boilerplate hidden for your convenience (mutators/accessors)
@@ -783,4 +714,24 @@ Array TerrainGenerator::get_second_scatter_pass_points()
 Array TerrainGenerator::get_chunks()
 {
     return chunks_gd;
+}
+
+void TerrainGenerator::set_min_tunnels(const int t)
+{
+    min_tunnels = t;
+}
+
+void TerrainGenerator::set_max_tunnels(const int t)
+{
+    max_tunnels = t;
+}
+
+int TerrainGenerator::get_min_tunnels() const
+{
+    return min_tunnels;
+}
+
+int TerrainGenerator::get_max_tunnels() const
+{
+    return max_tunnels;
 }

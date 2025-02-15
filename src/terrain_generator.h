@@ -34,10 +34,12 @@ namespace godot
 		double large_object_radius{10.0};
 		int max_removed_objects; // will not cause errors if <= 0
 
-		// Tunnel customization
+		// Room/tunnel customization
 		double room_dist;
 		Vector2i room_size_max;
 		Vector2i room_size_min;
+		int min_tunnels{1};
+		int max_tunnels{4};
 
 		vector<vector<TerrainChunk>> chunks;
 
@@ -56,7 +58,7 @@ namespace godot
 
 		double test_noise(Vector2i v);
 		void object_scatter(double r, int k, int pass_idx);
-		vector<Vec2> point_scatter(double r, int k);
+		vector<vector<Vec2>> point_scatter(double r, int k);
 		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size, int pass_idx);
 
 	protected:
@@ -66,9 +68,14 @@ namespace godot
 		TerrainGenerator();
 		~TerrainGenerator();
 
+		void generate();
+		Array get_first_scatter_pass_points();
+		Array get_second_scatter_pass_points();
+		Array get_chunks();
 		Vector2i world_to_nearest_chunk_coords(Vector2 world);
 		Vector2 chunk_to_world_coords(Vector2i chunk_coords);
 
+		// getters/setters...
 		void set_seed(const int given_seed);
 		int get_seed() const;
 		void set_biome_frequency(const double f);
@@ -109,11 +116,10 @@ namespace godot
 
 		TerrainRNG get_main_rng() const;
 
-		void generate();
-
-		Array get_first_scatter_pass_points();
-		Array get_second_scatter_pass_points();
-		Array get_chunks();
+		void set_min_tunnels(const int t);
+		void set_max_tunnels(const int t);
+		int get_min_tunnels() const;
+		int get_max_tunnels() const;
 	};
 }
 
