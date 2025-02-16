@@ -238,10 +238,10 @@ void TerrainGenerator::generate()
             if (top_left.y < 0)
                 top_left.y = 0;
             Vector2i bottom_right{top_left + room_size - Vector2i(1, 1)};
-            if (bottom_right.x > chunks.size())
-                bottom_right.x = chunks.size();
-            if (bottom_right.y > chunks[0].size())
-                bottom_right.y = chunks[0].size();
+            if (bottom_right.x > chunks.size() - 1)
+                bottom_right.x = chunks.size() - 1;
+            if (bottom_right.y > chunks[0].size() - 1)
+                bottom_right.y = chunks[0].size() - 1;
 
             // Iterate through all chunks in the room, creating walls and flagging them as not empty (actually part of the map)
             for (int x{top_left.x}; x <= bottom_right.x; x++)
@@ -252,11 +252,11 @@ void TerrainGenerator::generate()
                     c->set_non_empty();
                     if (x == top_left.x)
                         c->add_wall(Vector2i(-1, 0));
-                    if (x == bottom_right.x - 1)
+                    if (x == bottom_right.x)
                         c->add_wall(Vector2i(1, 0));
                     if (y == top_left.y)
                         c->add_wall(Vector2i(0, -1));
-                    if (y == bottom_right.y - 1)
+                    if (y == bottom_right.y)
                         c->add_wall(Vector2i(0, 1));
                 }
             }
