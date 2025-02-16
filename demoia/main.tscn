@@ -10,7 +10,7 @@ poi_2_container = NodePath("SecondScatter")
 chunk_container = NodePath("Chunks")
 
 [node name="TerrainGenerator" type="TerrainGenerator" parent="."]
-seed = 4047
+seed = 3562
 size = Vector2i(2048, 2048)
 chunk_size = Vector2i(16, 16)
 biome_frequency = 0.025

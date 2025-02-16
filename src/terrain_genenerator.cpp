@@ -435,15 +435,34 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
         ERR_FAIL_COND_MSG(pos.x < 0 || pos.x >= chunks.size() || pos.y < 0 || pos.y >= chunks[0].size(),
                           "oob array access during tunnel gen! this is a bug, report this please.");
         TerrainChunk *new_chunk{&chunks[pos.x][pos.y]};
+        Vector2i enter_dir{last_pos - pos};
         if (new_chunk->is_empty())
         {
             new_chunk->set_non_empty();
             new_chunk->set_tunnel();
+            // Give the new chunk walls, except for the direction we came from (last_pos - pos)
+            new_chunk->add_wall(-enter_dir);
+            if (enter_dir.x == 0)
+            {
+                new_chunk->add_wall(Vector2i(1, 0));
+                new_chunk->add_wall(Vector2i(-1, 0));
+            }
+            else
+            {
+                new_chunk->add_wall(Vector2i(0, 1));
+                new_chunk->add_wall(Vector2i(0, -1));
+            }
+
+            // Remove a wall on the old chunk to make it connect to the new one
+            old_chunk->remove_wall(-enter_dir);
+
             exited_starting_room = true;
         }
         else if (new_chunk->is_tunnel())
         {
-            // return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+            // Remove the entry direction, if there is a wall there
+            new_chunk->remove_wall(enter_dir);
+            old_chunk->remove_wall(-enter_dir);
         }
         else // Chunk is non-empty
         {
@@ -451,6 +470,8 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
             {
                 // We have landed in another room. If it's the target room, we're done. If not, panic and return but hey we made a tunnel i guess.
                 finished = true;
+                new_chunk->remove_wall(enter_dir);
+                old_chunk->remove_wall(-enter_dir);
                 if (pos.x >= connecting_to.top_left.x && pos.x <= connecting_to.bottom_right.x && pos.y >= connecting_to.top_left.y && pos.y <= connecting_to.bottom_right.y)
                     break;
                 else
@@ -476,17 +497,34 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                 ERR_FAIL_COND_MSG(pos.x < 0 || pos.x >= chunks.size() || pos.y < 0 || pos.y >= chunks[0].size(),
                                   "oob array access during tunnel gen! this is a bug, report this please.");
                 TerrainChunk *new_chunk = &chunks[pos.x][pos.y];
-
+                Vector2i enter_dir{last_pos - pos};
                 // double copy paste could be a function
                 if (new_chunk->is_empty())
                 {
                     new_chunk->set_non_empty();
                     new_chunk->set_tunnel();
+                    // Give the new chunk walls, except for the direction we came from (last_pos - pos)
+                    new_chunk->add_wall(-enter_dir);
+                    if (enter_dir.x == 0)
+                    {
+                        new_chunk->add_wall(Vector2i(1, 0));
+                        new_chunk->add_wall(Vector2i(-1, 0));
+                    }
+                    else
+                    {
+                        new_chunk->add_wall(Vector2i(0, 1));
+                        new_chunk->add_wall(Vector2i(0, -1));
+                    }
+
+                    // Remove a wall on the old chunk to make it connect to the new one
+                    old_chunk->remove_wall(-enter_dir);
+
                     exited_starting_room = true;
                 }
                 else if (new_chunk->is_tunnel())
                 {
-                    // return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+                    new_chunk->remove_wall(enter_dir);
+                    old_chunk->remove_wall(-enter_dir);
                 }
                 else // Chunk is non-empty
                 {
@@ -494,6 +532,8 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                     {
                         // We have landed in another room. If it's the target room, we're done. If not, panic and return but hey we made a tunnel i guess.
                         finished = true;
+                        new_chunk->remove_wall(enter_dir);
+                        old_chunk->remove_wall(-enter_dir);
                         if (pos.x >= connecting_to.top_left.x && pos.x <= connecting_to.bottom_right.x && pos.y >= connecting_to.top_left.y && pos.y <= connecting_to.bottom_right.y)
                             break;
                         else
@@ -517,17 +557,34 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                 ERR_FAIL_COND_MSG(pos.x < 0 || pos.x >= chunks.size() || pos.y < 0 || pos.y >= chunks[0].size(),
                                   "oob array access during tunnel gen! this is a bug, report this please.");
                 TerrainChunk *new_chunk = &chunks[pos.x][pos.y];
-
+                Vector2i enter_dir{last_pos - pos};
                 // double copy paste could be a function
                 if (new_chunk->is_empty())
                 {
                     new_chunk->set_non_empty();
                     new_chunk->set_tunnel();
+                    // Give the new chunk walls, except for the direction we came from (last_pos - pos)
+                    new_chunk->add_wall(-enter_dir);
+                    if (enter_dir.x == 0)
+                    {
+                        new_chunk->add_wall(Vector2i(1, 0));
+                        new_chunk->add_wall(Vector2i(-1, 0));
+                    }
+                    else
+                    {
+                        new_chunk->add_wall(Vector2i(0, 1));
+                        new_chunk->add_wall(Vector2i(0, -1));
+                    }
+
+                    // Remove a wall on the old chunk to make it connect to the new one
+                    old_chunk->remove_wall(-enter_dir);
+
                     exited_starting_room = true;
                 }
                 else if (new_chunk->is_tunnel())
                 {
-                    // return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+                    new_chunk->remove_wall(enter_dir);
+                    old_chunk->remove_wall(-enter_dir);
                 }
                 else // Chunk is non-empty
                 {
@@ -535,6 +592,8 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                     {
                         // We have landed in another room. If it's the target room, we're done. If not, panic and return but hey we made a tunnel i guess.
                         finished = true;
+                        new_chunk->remove_wall(enter_dir);
+                        old_chunk->remove_wall(-enter_dir);
                         if (pos.x >= connecting_to.top_left.x && pos.x <= connecting_to.bottom_right.x && pos.y >= connecting_to.top_left.y && pos.y <= connecting_to.bottom_right.y)
                             break;
                         else
