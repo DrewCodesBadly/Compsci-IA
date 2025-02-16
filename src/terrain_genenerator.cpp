@@ -393,22 +393,22 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
     if (tunnel_dir.x > 0)
     {
         tunnel_dir.x = 1;
-        bounds.x = connecting_to.top_left.x;
+        bounds.x = connecting_to.bottom_right.x;
     }
     else
     {
         tunnel_dir.x = -1;
-        bounds.x = connecting_to.bottom_right.x;
+        bounds.x = connecting_to.top_left.x;
     }
     if (tunnel_dir.y > 0)
     {
         tunnel_dir.y = 1;
-        bounds.y = connecting_to.top_left.y;
+        bounds.y = connecting_to.bottom_right.y;
     }
     else
     {
         tunnel_dir.y = -1;
-        bounds.y = connecting_to.bottom_right.y;
+        bounds.y = connecting_to.top_left.y;
     }
 
     UtilityFunctions::print("Drawing tunnel w/direction " + tunnel_dir + " and bounds " + bounds + " and start point " + pos);
@@ -443,7 +443,7 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
         }
         else if (new_chunk->is_tunnel())
         {
-            return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+            // return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
         }
         else // Chunk is non-empty
         {
@@ -473,6 +473,8 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
             while (pos.y != bounds.y)
             {
                 pos.y += tunnel_dir.y;
+                ERR_FAIL_COND_MSG(pos.x < 0 || pos.x >= chunks.size() || pos.y < 0 || pos.y >= chunks[0].size(),
+                                  "oob array access during tunnel gen! this is a bug, report this please.");
                 TerrainChunk *new_chunk = &chunks[pos.x][pos.y];
 
                 // double copy paste could be a function
@@ -484,7 +486,7 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                 }
                 else if (new_chunk->is_tunnel())
                 {
-                    return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+                    // return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
                 }
                 else // Chunk is non-empty
                 {
@@ -512,6 +514,8 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
             while (pos.x != bounds.x)
             {
                 pos.x += tunnel_dir.x;
+                ERR_FAIL_COND_MSG(pos.x < 0 || pos.x >= chunks.size() || pos.y < 0 || pos.y >= chunks[0].size(),
+                                  "oob array access during tunnel gen! this is a bug, report this please.");
                 TerrainChunk *new_chunk = &chunks[pos.x][pos.y];
 
                 // double copy paste could be a function
@@ -523,7 +527,7 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                 }
                 else if (new_chunk->is_tunnel())
                 {
-                    return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+                    // return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
                 }
                 else // Chunk is non-empty
                 {
