@@ -132,6 +132,11 @@ void TerrainChunk::add_wall(Vector2i wall)
     }
 }
 
+void TerrainChunk::remove_wall(Vector2i wall)
+{
+    wall_directions.erase(wall); // linear searches + removes. Could use a more efficient bit-based system here?
+}
+
 enum Biome TerrainChunk::get_biome() const
 {
     return biome;

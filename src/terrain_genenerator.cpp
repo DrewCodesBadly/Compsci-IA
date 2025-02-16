@@ -79,13 +79,13 @@ void TerrainGenerator::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_hybrid_enabled", "b"), &TerrainGenerator::set_hybrid_enabled);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hybrid_enabled"), "set_hybrid_enabled", "get_hybrid_enabled");
 
-    ClassDB::bind_method(D_METHOD("get_min_tunnels"), &TerrainGenerator::get_min_tunnels);
-    ClassDB::bind_method(D_METHOD("set_min_tunnels", "t"), &TerrainGenerator::set_min_tunnels);
-    ADD_PROPERTY(PropertyInfo(Variant::INT, "min_tunnels"), "set_min_tunnels", "get_min_tunnels");
+    // ClassDB::bind_method(D_METHOD("get_min_tunnels"), &TerrainGenerator::get_min_tunnels);
+    // ClassDB::bind_method(D_METHOD("set_min_tunnels", "t"), &TerrainGenerator::set_min_tunnels);
+    // ADD_PROPERTY(PropertyInfo(Variant::INT, "min_tunnels"), "set_min_tunnels", "get_min_tunnels");
 
-    ClassDB::bind_method(D_METHOD("get_max_tunnels"), &TerrainGenerator::get_max_tunnels);
-    ClassDB::bind_method(D_METHOD("set_max_tunnels", "t"), &TerrainGenerator::set_max_tunnels);
-    ADD_PROPERTY(PropertyInfo(Variant::INT, "max_tunnels"), "set_max_tunnels", "get_max_tunnels");
+    // ClassDB::bind_method(D_METHOD("get_max_tunnels"), &TerrainGenerator::get_max_tunnels);
+    // ClassDB::bind_method(D_METHOD("set_max_tunnels", "t"), &TerrainGenerator::set_max_tunnels);
+    // ADD_PROPERTY(PropertyInfo(Variant::INT, "max_tunnels"), "set_max_tunnels", "get_max_tunnels");
 
     // ClassDB::bind_method(D_METHOD("test_noise", "v"), &TerrainGenerator::test_noise);
 
@@ -131,14 +131,6 @@ double normalize_and_trim(double input, double trim_fac = 2.0)
         val = 0;
     return val;
 }
-
-// Used for room/tunnel generation
-struct RoomBounds
-{
-    Vector2i top_left;
-    Vector2i bottom_right;
-    bool connected = false;
-};
 
 // Entrypoint for map generation
 void TerrainGenerator::generate()
@@ -221,7 +213,7 @@ void TerrainGenerator::generate()
     }
 
     // Generate room positions and shapes, settings chunk wall positions
-    Vector2i max_min_room_diff{room_size_max - room_size_min + Vector2i(1, 1)};
+    Vector2i max_min_room_diff{(room_size_max - room_size_min) + Vector2i(1, 1)};
     vector<vector<Vec2>> rooms_points_grid = point_scatter(room_dist, scatter_tries);
 
     // Generate room chunks and create a new 2D array to store room structs instead
@@ -245,27 +237,27 @@ void TerrainGenerator::generate()
                 top_left.x = 0;
             if (top_left.y < 0)
                 top_left.y = 0;
-            Vector2i bottom_right{top_left + room_size};
+            Vector2i bottom_right{top_left + room_size - Vector2i(1, 1)};
             if (bottom_right.x > chunks.size())
                 bottom_right.x = chunks.size();
             if (bottom_right.y > chunks[0].size())
                 bottom_right.y = chunks[0].size();
 
             // Iterate through all chunks in the room, creating walls and flagging them as not empty (actually part of the map)
-            for (int x{top_left.x}; x < bottom_right.x; x++)
+            for (int x{top_left.x}; x <= bottom_right.x; x++)
             {
-                for (int y{top_left.y}; y < bottom_right.y; y++)
+                for (int y{top_left.y}; y <= bottom_right.y; y++)
                 {
-                    TerrainChunk &c = chunks[x][y];
-                    c.set_non_empty();
+                    TerrainChunk *c = &chunks[x][y];
+                    c->set_non_empty();
                     if (x == top_left.x)
-                        c.add_wall(Vector2i(-1, 0));
+                        c->add_wall(Vector2i(-1, 0));
                     if (x == bottom_right.x - 1)
-                        c.add_wall(Vector2i(1, 0));
+                        c->add_wall(Vector2i(1, 0));
                     if (y == top_left.y)
-                        c.add_wall(Vector2i(0, -1));
+                        c->add_wall(Vector2i(0, -1));
                     if (y == bottom_right.y - 1)
-                        c.add_wall(Vector2i(0, 1));
+                        c->add_wall(Vector2i(0, 1));
                 }
             }
 
@@ -276,135 +268,20 @@ void TerrainGenerator::generate()
     }
 
     // Generate tunnels connecting rooms
+    unsigned int current_connection_group{1};
     for (int x{0}; x < rooms_grid.size(); x++)
     {
         for (int y{0}; y < rooms_grid[0].size(); y++)
         {
             RoomBounds r{rooms_grid[x][y]};
-            // Ignore empty rooms
-            if (r.top_left.x == -1.0)
+            // Ignore empty rooms or rooms which have already been connected
+            if (r.top_left.x == -1.0 || r.connection_group > 0)
             {
                 continue;
             }
-
-            // Pick the (max) number of tunnels this room can have
-            vector<Vector2i> directions{{Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
-                                         Vector2i(-1, 0), /*Vector2i(0, 0),*/ Vector2i(1, 0),
-                                         Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)}};
-            unsigned int tunnels{min_tunnels + (main_rng.next() % (max_tunnels - min_tunnels + 1))};
-
-            // Check different directions for adjacent rooms to connect to
-            while (tunnels > 0 && directions.size() > 0)
-            {
-                // Randomly select a direction and try it
-                long unsigned int idx{main_rng.next() % directions.size()};
-                Vector2i dir{directions[idx]};
-                directions.erase(directions.begin() + idx);
-
-                // If there is no room to connect to, pass and keep going
-                Vector2i new_point{x + dir.x, y + dir.y};
-                if (new_point.x < 0 || new_point.y < 0 || new_point.x > rooms_grid.size() || new_point.y > rooms_grid[0].size())
-                    continue;
-                RoomBounds connecting_to{rooms_grid[new_point.x][new_point.y]};
-                if (connecting_to.top_left.x == -1)
-                    continue;
-
-                // Randomly snake from this room's center (roughly) point to the next room, creating a tunnel
-                Vector2i pos{(r.top_left + r.bottom_right) / 2};
-                Vector2i target_pos{(connecting_to.top_left + connecting_to.bottom_right) / 2};
-                Vector2i tunnel_dir{target_pos - pos};
-                Vector2i limits;
-                if (tunnel_dir.x > 0)
-                {
-                    tunnel_dir.x = 1;
-                    limits.x = connecting_to.top_left.x;
-                }
-                else
-                {
-                    tunnel_dir.x = -1;
-                    limits.x = connecting_to.bottom_right.x;
-                }
-                if (tunnel_dir.y > 0)
-                {
-                    tunnel_dir.y = 1;
-                    limits.y = connecting_to.top_left.y;
-                }
-                else
-                {
-                    tunnel_dir.y = -1;
-                    limits.y = connecting_to.bottom_right.y;
-                }
-                bool exited_room{false};
-                bool finished{false};
-                while (pos.x != limits.x && pos.y != limits.y)
-                {
-                    // Shouldn't be possible to get out of bounds since we target a room which is in bounds
-                    if (main_rng.next() % 2 == 0)
-                    {
-                        pos.x += tunnel_dir.x;
-                    }
-                    else
-                    {
-                        pos.y += tunnel_dir.y;
-                    }
-
-                    TerrainChunk &new_chunk{chunks[pos.x][pos.y]};
-                    if (!new_chunk.is_empty() && exited_room)
-                    {
-                        // We've landed in the next room (if rooms are touching this could be an issue...)
-                        finished = true;
-                        break;
-                    }
-                    else if (new_chunk.is_tunnel())
-                    {
-                        finished = true;
-                        break;
-                    }
-                    else
-                    {
-                        if (new_chunk.is_empty() && !exited_room)
-                        {
-                            exited_room = true;
-                        }
-                        new_chunk.set_non_empty();
-                    }
-                }
-                // Finish the tunnel by going straight toward the room if needed
-                if (!finished)
-                {
-                    if (pos.x != limits.x)
-                    {
-                        while (pos.x != limits.x)
-                        {
-                            pos.x += tunnel_dir.x;
-                            TerrainChunk &new_chunk{chunks[pos.x][pos.y]};
-                            if (!new_chunk.is_empty() && exited_room)
-                                break;
-                            else if (new_chunk.is_empty() && !exited_room)
-                                exited_room = true;
-                            else if (new_chunk.is_tunnel())
-                                break;
-                            new_chunk.set_non_empty();
-                            new_chunk.set_tunnel();
-                        }
-                    }
-                    else if (pos.y != limits.y)
-                    {
-                        while (pos.y != limits.y)
-                        {
-                            pos.y += tunnel_dir.y;
-                            TerrainChunk &new_chunk{chunks[pos.x][pos.y]};
-                            if (!new_chunk.is_empty() && exited_room)
-                            {
-                                break;
-                            }
-                            new_chunk.set_non_empty();
-                        }
-                    }
-                }
-
-                tunnels--;
-            }
+            UtilityFunctions::print("\n\n\nStarting tunnel recursion");
+            connect_tunnel(&rooms_grid, Vector2i(x, y), current_connection_group);
+            current_connection_group++;
         }
     }
 
@@ -452,6 +329,229 @@ void TerrainGenerator::generate()
 
     // Clear unneeded chunk data
     chunks.clear();
+}
+
+// used to make tunnels - RECURSIVE!
+void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2i start_pos, unsigned int connection_group)
+{
+    UtilityFunctions::print("\nTrying connect tunnel, start = " + start_pos);
+    RoomBounds start{(*rooms)[start_pos.x][start_pos.y]};
+    (*rooms)[start_pos.x][start_pos.y].connection_group = connection_group;
+
+    // All 8 integer directions
+    vector<Vector2i> directions{{Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
+                                 Vector2i(-1, 0), /*Vector2i(0, 0),*/ Vector2i(1, 0),
+                                 Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)}};
+
+    // Cycle through directions until we find a suitable room to connect to
+    // If no room can be found, we return and stop
+    RoomBounds connecting_to;
+    Vector2i connecting_to_pos;
+    bool room_found{false};
+    bool continuing{true};
+    Vector2i dir;
+    while (directions.size() > 0)
+    {
+        unsigned long int idx{main_rng.next() % directions.size()};
+        dir = directions[idx];
+        directions.erase(directions.begin() + idx);
+
+        // For every inbounds point from the start position adding on dir
+        for (Vector2i pos{start_pos + dir}; pos.x >= 0 && pos.y >= 0 && pos.x < rooms->size() && pos.y < (*rooms)[0].size(); pos += dir)
+        {
+            if ((*rooms)[pos.x][pos.y].top_left.x != -1.0)
+            {
+                connecting_to = (*rooms)[pos.x][pos.y];
+                connecting_to_pos = pos;
+                if (connecting_to.connection_group < connection_group)
+                {
+                    room_found = true;
+                    if (connecting_to.connection_group != 0)
+                    {
+                        continuing = false;
+                    }
+                }
+
+                // We break anyways even if a connected room was found, don't want to add extra tunnels
+                break;
+            }
+        }
+        if (room_found)
+            break;
+    }
+
+    // Return and stop if we cannot find a room
+    if (!room_found)
+        return;
+    UtilityFunctions::print("Direction found, using dir " + dir);
+    UtilityFunctions::print("Trying connect to room " + connecting_to_pos);
+
+    // Generate a tunnel between the two rooms
+    Vector2i pos{(start.top_left + start.bottom_right) / 2}; // Center of starting room
+    Vector2i bounds{Vector2i(0, 0)};                         // x and y limits; if either coordinate goes past these we might miss the target room
+    Vector2i tunnel_dir{((connecting_to.top_left + connecting_to.bottom_right) / 2) - pos};
+    if (tunnel_dir.x > 0)
+    {
+        tunnel_dir.x = 1;
+        bounds.x = connecting_to.top_left.x;
+    }
+    else
+    {
+        tunnel_dir.x = -1;
+        bounds.x = connecting_to.bottom_right.x;
+    }
+    if (tunnel_dir.y > 0)
+    {
+        tunnel_dir.y = 1;
+        bounds.y = connecting_to.top_left.y;
+    }
+    else
+    {
+        tunnel_dir.y = -1;
+        bounds.y = connecting_to.bottom_right.y;
+    }
+
+    UtilityFunctions::print("Drawing tunnel w/direction " + tunnel_dir + " and bounds " + bounds + " and start point " + pos);
+    UtilityFunctions::print("Start room bounds: " + start.top_left + start.bottom_right);
+    UtilityFunctions::print("End room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
+
+    // Keep going until we are either in the target room or hit one bound
+    bool exited_starting_room{false};
+    bool finished{false};
+    TerrainChunk *old_chunk{&chunks[pos.x][pos.y]};
+    Vector2i last_pos{pos};
+    while (pos.x != bounds.x && pos.y != bounds.y)
+    {
+        // Randomly snake forward
+        if (main_rng.next() % 2 == 0)
+        {
+            pos.x += tunnel_dir.x;
+        }
+        else
+        {
+            pos.y += tunnel_dir.y;
+        }
+
+        ERR_FAIL_COND_MSG(pos.x < 0 || pos.x >= chunks.size() || pos.y < 0 || pos.y >= chunks[0].size(),
+                          "oob array access during tunnel gen! this is a bug, report this please.");
+        TerrainChunk *new_chunk{&chunks[pos.x][pos.y]};
+        if (new_chunk->is_empty())
+        {
+            new_chunk->set_non_empty();
+            new_chunk->set_tunnel();
+            exited_starting_room = true;
+        }
+        else if (new_chunk->is_tunnel())
+        {
+            return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+        }
+        else // Chunk is non-empty
+        {
+            if (exited_starting_room)
+            {
+                // We have landed in another room. If it's the target room, we're done. If not, panic and return but hey we made a tunnel i guess.
+                finished = true;
+                if (pos.x >= connecting_to.top_left.x && pos.x <= connecting_to.bottom_right.x && pos.y >= connecting_to.top_left.y && pos.y <= connecting_to.bottom_right.y)
+                    break;
+                else
+                {
+                    UtilityFunctions::print("Exiting early because pos " + pos + " is non-empty, not in the target room " + connecting_to_pos + " and we have exited the starting room");
+                    UtilityFunctions::print("Target room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
+                    return;
+                }
+            }
+        }
+
+        last_pos = pos;
+        old_chunk = new_chunk;
+    }
+
+    if (!finished)
+    {
+        if (pos.y != bounds.y)
+        {
+            while (pos.y != bounds.y)
+            {
+                pos.y += tunnel_dir.y;
+                TerrainChunk *new_chunk = &chunks[pos.x][pos.y];
+
+                // double copy paste could be a function
+                if (new_chunk->is_empty())
+                {
+                    new_chunk->set_non_empty();
+                    new_chunk->set_tunnel();
+                    exited_starting_room = true;
+                }
+                else if (new_chunk->is_tunnel())
+                {
+                    return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+                }
+                else // Chunk is non-empty
+                {
+                    if (exited_starting_room)
+                    {
+                        // We have landed in another room. If it's the target room, we're done. If not, panic and return but hey we made a tunnel i guess.
+                        finished = true;
+                        if (pos.x >= connecting_to.top_left.x && pos.x <= connecting_to.bottom_right.x && pos.y >= connecting_to.top_left.y && pos.y <= connecting_to.bottom_right.y)
+                            break;
+                        else
+                        {
+                            UtilityFunctions::print("Exiting early because pos " + pos + " is non-empty, not in the target room " + connecting_to_pos + " and we have exited the starting room");
+                            UtilityFunctions::print("Target room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
+                            return;
+                        }
+                    }
+                }
+
+                old_chunk = new_chunk;
+                last_pos = pos;
+            }
+        }
+        else if (pos.x != bounds.x)
+        {
+            while (pos.x != bounds.x)
+            {
+                pos.x += tunnel_dir.x;
+                TerrainChunk *new_chunk = &chunks[pos.x][pos.y];
+
+                // double copy paste could be a function
+                if (new_chunk->is_empty())
+                {
+                    new_chunk->set_non_empty();
+                    new_chunk->set_tunnel();
+                    exited_starting_room = true;
+                }
+                else if (new_chunk->is_tunnel())
+                {
+                    return; // We cancel immediately on hitting another tunnel, merging into 1 larger network.
+                }
+                else // Chunk is non-empty
+                {
+                    if (exited_starting_room)
+                    {
+                        // We have landed in another room. If it's the target room, we're done. If not, panic and return but hey we made a tunnel i guess.
+                        finished = true;
+                        if (pos.x >= connecting_to.top_left.x && pos.x <= connecting_to.bottom_right.x && pos.y >= connecting_to.top_left.y && pos.y <= connecting_to.bottom_right.y)
+                            break;
+                        else
+                        {
+                            UtilityFunctions::print("Exiting early because pos " + pos + " is non-empty, not in the target room " + connecting_to_pos + " and we have exited the starting room");
+                            UtilityFunctions::print("Target room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
+                            return;
+                        }
+                    }
+                }
+
+                old_chunk = new_chunk;
+                last_pos = pos;
+            }
+        }
+    }
+
+    // Recursively call this function on the next room, creating a chain of tunnels
+    UtilityFunctions::print("Successfully reached end of connect_tunnel");
+    if (continuing)
+        connect_tunnel(rooms, connecting_to_pos, connection_group);
 }
 
 // used in object_scatter
@@ -817,24 +917,24 @@ Array TerrainGenerator::get_chunks()
     return chunks_gd;
 }
 
-void TerrainGenerator::set_min_tunnels(const int t)
-{
-    if (t >= 0)
-        min_tunnels = t;
-}
+// void TerrainGenerator::set_min_tunnels(const int t)
+// {
+//     if (t >= 0)
+//         min_tunnels = t;
+// }
 
-void TerrainGenerator::set_max_tunnels(const int t)
-{
-    if (t >= 0)
-        max_tunnels = t;
-}
+// void TerrainGenerator::set_max_tunnels(const int t)
+// {
+//     if (t >= 0)
+//         max_tunnels = t;
+// }
 
-int TerrainGenerator::get_min_tunnels() const
-{
-    return min_tunnels;
-}
+// int TerrainGenerator::get_min_tunnels() const
+// {
+//     return min_tunnels;
+// }
 
-int TerrainGenerator::get_max_tunnels() const
-{
-    return max_tunnels;
-}
+// int TerrainGenerator::get_max_tunnels() const
+// {
+//     return max_tunnels;
+// }

@@ -36,6 +36,7 @@ namespace godot
         void remove_random_objects(int num, TerrainRNG main_rng);
         // Expected that enter and exit are cardinal directions e.g. (1, 0)
         void add_wall(Vector2i wall);
+        void remove_wall(Vector2i wall);
         bool is_tunnel() const;
         bool is_empty() const;
         enum Biome get_biome() const;

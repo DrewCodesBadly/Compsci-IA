@@ -12,6 +12,14 @@
 
 using std::vector;
 
+// Used for room/tunnel generation
+struct RoomBounds
+{
+	godot::Vector2i top_left;
+	godot::Vector2i bottom_right;
+	unsigned int connection_group = 0;
+};
+
 namespace godot
 {
 
@@ -38,8 +46,8 @@ namespace godot
 		double room_dist;
 		Vector2i room_size_max;
 		Vector2i room_size_min;
-		int min_tunnels{1};
-		int max_tunnels{2};
+		// int min_tunnels{1};
+		// int max_tunnels{2};
 
 		vector<vector<TerrainChunk>> chunks;
 
@@ -60,6 +68,7 @@ namespace godot
 		void object_scatter(double r, int k, int pass_idx);
 		vector<vector<Vec2>> point_scatter(double r, int k);
 		void insert_object(vector<vector<Vec2>> &grid, Vec2 p, double cellsize, double obj_size, int pass_idx);
+		void connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2i start_pos, unsigned int conenction_group);
 
 	protected:
 		static void _bind_methods();
