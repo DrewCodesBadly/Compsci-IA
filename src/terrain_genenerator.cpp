@@ -279,7 +279,6 @@ void TerrainGenerator::generate()
             {
                 continue;
             }
-            UtilityFunctions::print("\n\n\nStarting tunnel recursion");
             connect_tunnel(&rooms_grid, Vector2i(x, y), current_connection_group);
             current_connection_group++;
         }
@@ -334,7 +333,6 @@ void TerrainGenerator::generate()
 // used to make tunnels - RECURSIVE!
 void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2i start_pos, unsigned int connection_group)
 {
-    UtilityFunctions::print("\nTrying connect tunnel, start = " + start_pos);
     RoomBounds start{(*rooms)[start_pos.x][start_pos.y]};
     (*rooms)[start_pos.x][start_pos.y].connection_group = connection_group;
 
@@ -383,8 +381,6 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
     // Return and stop if we cannot find a room
     if (!room_found)
         return;
-    UtilityFunctions::print("Direction found, using dir " + dir);
-    UtilityFunctions::print("Trying connect to room " + connecting_to_pos);
 
     // Generate a tunnel between the two rooms
     Vector2i pos{(start.top_left + start.bottom_right) / 2}; // Center of starting room
@@ -410,10 +406,6 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
         tunnel_dir.y = -1;
         bounds.y = connecting_to.top_left.y;
     }
-
-    UtilityFunctions::print("Drawing tunnel w/direction " + tunnel_dir + " and bounds " + bounds + " and start point " + pos);
-    UtilityFunctions::print("Start room bounds: " + start.top_left + start.bottom_right);
-    UtilityFunctions::print("End room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
 
     // Keep going until we are either in the target room or hit one bound
     bool exited_starting_room{false};
@@ -476,8 +468,6 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                     break;
                 else
                 {
-                    UtilityFunctions::print("Exiting early because pos " + pos + " is non-empty, not in the target room " + connecting_to_pos + " and we have exited the starting room");
-                    UtilityFunctions::print("Target room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
                     return;
                 }
             }
@@ -538,8 +528,6 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                             break;
                         else
                         {
-                            UtilityFunctions::print("Exiting early because pos " + pos + " is non-empty, not in the target room " + connecting_to_pos + " and we have exited the starting room");
-                            UtilityFunctions::print("Target room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
                             return;
                         }
                     }
@@ -598,8 +586,6 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
                             break;
                         else
                         {
-                            UtilityFunctions::print("Exiting early because pos " + pos + " is non-empty, not in the target room " + connecting_to_pos + " and we have exited the starting room");
-                            UtilityFunctions::print("Target room bounds: " + connecting_to.top_left + connecting_to.bottom_right);
                             return;
                         }
                     }
@@ -612,7 +598,6 @@ void TerrainGenerator::connect_tunnel(vector<vector<RoomBounds>> *rooms, Vector2
     }
 
     // Recursively call this function on the next room, creating a chain of tunnels
-    UtilityFunctions::print("Successfully reached end of connect_tunnel");
     if (continuing)
         connect_tunnel(rooms, connecting_to_pos, connection_group);
 }
